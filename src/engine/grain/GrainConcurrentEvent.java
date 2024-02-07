@@ -3,6 +3,9 @@ package engine.grain;
 import event.Event;
 
 public class GrainConcurrentEvent extends Event {
+
+    public boolean isE1;
+    public boolean isE2;
     
     public boolean Handle(GrainConcurrentState state) {
         return true;

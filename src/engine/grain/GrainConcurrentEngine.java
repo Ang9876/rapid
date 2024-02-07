@@ -38,6 +38,8 @@ public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
         }
         eventCount = 0;
         totalSkippedEvents = 0;
+        initializeReader(trace_folder);
+        state = new GrainConcurrentState(threadSet);
     }
 
     public void analyzeTrace() {
