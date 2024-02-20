@@ -54,8 +54,8 @@ public class Monitor implements Consumer<Event> {
     }
 
     private void updateVectorClock(Event event){
-        if(event.getType().isSend()) HandleSend(event);
-        if(event.getType().isReceive()) HandleReceive(event);
+        // if(event.getType().isSend()) HandleSend(event);
+        // if(event.getType().isReceive()) HandleReceive(event);
     }
 
 

@@ -38,6 +38,7 @@ public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
         }
         eventCount = 0;
         totalSkippedEvents = 0;
+        handlerEvent = new GrainConcurrentEvent();
         initializeReader(trace_folder);
         state = new GrainConcurrentState(threadSet);
     }
@@ -51,18 +52,27 @@ public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
 
     private void analyzeTraceSTD() {
         boolean flag = false;
+        eventCount = 0;
         while(stdParser.hasNext()){
 			eventCount = eventCount + 1;
+            if(eventCount == e1Index) {
+                handlerEvent.isE1 = true;
+            }
+            if(eventCount == e2Index) {
+                handlerEvent.isE2 = true;
+            }
 			stdParser.getNextEvent(handlerEvent);
             boolean matched = handlerEvent.Handle(state);
             if (matched) {
                 flag = true;
-                System.out.println("e1 and e2 are concurrent");
                 break;
             }
             postHandleEvent(handlerEvent);
         }
-        if(!flag) {
+        if(flag || state.finalCheck()) {
+            System.out.println("e1 and e2 are concurrent");
+        }
+        else {
             System.out.println("e1 and e2 are ordered");
         }
         state.printMemory();
@@ -85,5 +95,8 @@ public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
         return false;
     }
 
-	protected void postHandleEvent(GrainConcurrentEvent handlerEvent) {}
+	protected void postHandleEvent(GrainConcurrentEvent handlerEvent) {
+        handlerEvent.isE1 = false;
+        handlerEvent.isE2 = false;
+    }
 }

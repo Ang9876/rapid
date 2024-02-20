@@ -8,7 +8,14 @@ public class GrainConcurrentEvent extends Event {
     public boolean isE2;
     
     public boolean Handle(GrainConcurrentState state) {
-        return true;
+        if(isE1) {
+            state.witnessE1 = true;
+        }
+        if(isE2) {
+            state.witnessE2 = true;
+        }
+        state.generateStates(this);
+        return state.isConcurrent();
     }
 
     public boolean HandleSubAcquire(GrainConcurrentState state) {
