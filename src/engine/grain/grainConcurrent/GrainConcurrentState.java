@@ -1,26 +1,26 @@
-package engine.grain;
+package engine.grain.grainConcurrent;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 
-import engine.pattern.State;
+import engine.grain.GrainEvent;
+import engine.grain.GrainState;
 import event.Thread;
 import event.Variable;
 
-public class GrainConcurrentState extends State {
+public class GrainConcurrentState extends GrainState {
     
     ArrayList<NondetState> nondetStates;
-    public boolean witnessE1;
-    public boolean witnessE2;
 
     public GrainConcurrentState(HashSet<Thread> tSet) {
+        threadSet = tSet;
         nondetStates = new ArrayList<>();
         NondetState initState = new NondetState();
-        nondetStates.add(initState);        
+        nondetStates.add(initState);    
     }
 
-    public void generateStates(GrainConcurrentEvent e) {
+    public boolean update(GrainEvent e) {
         ArrayList<NondetState> newStates = new ArrayList<>();
         Iterator<NondetState> iter = nondetStates.iterator();
         while(iter.hasNext()){
@@ -102,9 +102,10 @@ public class GrainConcurrentState extends State {
         if(!witnessE1) {
             nondetStates.add(new NondetState());
         }
+        return isConcurrent();
     }
 
-    public boolean isConcurrent() {
+    private boolean isConcurrent() {
         if(!witnessE2) {
             return false;
         }

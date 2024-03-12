@@ -1,21 +1,21 @@
 package engine.grain;
 
+import engine.grain.grainConcurrent.GrainConcurrentState;
 import event.Event;
 
-public class GrainConcurrentEvent extends Event {
+public class GrainEvent extends Event {
 
     public boolean isE1;
     public boolean isE2;
     
-    public boolean Handle(GrainConcurrentState state) {
+    public boolean Handle(GrainState state) {
         if(isE1) {
             state.witnessE1 = true;
         }
         if(isE2) {
             state.witnessE2 = true;
         }
-        state.generateStates(this);
-        return state.isConcurrent();
+        return state.update(this);
     }
 
     public boolean HandleSubAcquire(GrainConcurrentState state) {

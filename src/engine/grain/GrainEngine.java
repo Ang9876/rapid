@@ -11,18 +11,18 @@ import event.Thread;
 import parse.ParserType;
 import parse.std.ParseStandard;
 
-public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
+public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
 
     protected long eventCount;
     protected long totalSkippedEvents;
     
     protected HashSet<Thread> threadSet;
-    protected GrainConcurrentState state;
+    protected S state;
 
     protected long startTimeAnalysis = 0;
     protected long e1Index, e2Index;
 
-    public GrainConcurrentEngine(ParserType pType, String trace_folder, String eventsFileName) {
+    public GrainEngine(ParserType pType, String trace_folder, String eventsFileName) {
         super(pType);
         try {
             Scanner myReader = new Scanner(new File(eventsFileName));
@@ -38,9 +38,8 @@ public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
         }
         eventCount = 0;
         totalSkippedEvents = 0;
-        handlerEvent = new GrainConcurrentEvent();
+        handlerEvent = new GrainEvent();
         initializeReader(trace_folder);
-        state = new GrainConcurrentState(threadSet);
     }
 
     public void analyzeTrace() {
@@ -50,7 +49,7 @@ public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
 		printCompletionStatus();
     }
 
-    private void analyzeTraceSTD() {
+    protected void analyzeTraceSTD() {
         boolean flag = false;
         eventCount = 0;
         while(stdParser.hasNext()){
@@ -70,10 +69,10 @@ public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
             postHandleEvent(handlerEvent);
         }
         if(flag || state.finalCheck()) {
-            System.out.println("e1 and e2 are concurrent");
+            System.out.println("YES");
         }
         else {
-            System.out.println("e1 and e2 are ordered");
+            System.out.println("NO");
         }
         state.printMemory();
     }
@@ -91,11 +90,11 @@ public class GrainConcurrentEngine extends Engine<GrainConcurrentEvent> {
 
 	protected void initializeReaderRR(String trace_file) {}
 
-    protected boolean skipEvent(GrainConcurrentEvent handlerEvent) {
+    protected boolean skipEvent(GrainEvent handlerEvent) {
         return false;
     }
 
-	protected void postHandleEvent(GrainConcurrentEvent handlerEvent) {
+	protected void postHandleEvent(GrainEvent handlerEvent) {
         handlerEvent.isE1 = false;
         handlerEvent.isE2 = false;
     }
