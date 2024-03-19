@@ -35,6 +35,7 @@ public class GrainConcurrentState extends GrainState {
                     state.guessedIncompleteVars.remove(e.getVariable());
                 }
                 state.currentGrain.rdVars.add(e.getVariable());
+                // See a read before any write => incomplete
                 if(!state.currentGrain.wtVars.contains(e.getVariable())) {
                     state.currentGrain.incompleteVars.add(e.getVariable());
                 }
@@ -48,16 +49,20 @@ public class GrainConcurrentState extends GrainState {
                     state.guessedCompleteVars.remove(e.getVariable());
                 }
                 state.currentGrain.wtVars.add(e.getVariable());
+                // Add current write var into completeVars as a candidate
                 if(!state.currentGrain.incompleteVars.contains(e.getVariable())) {
                     state.currentGrain.completeVars.add(e.getVariable());
                 }
             }
+            state.currentGrain.threads.add(e.getThread());
             
             // Stop current grain here
+            // If before e1 or after e2, do not add current grain into checking.
             if(!witnessE1 || state.containsE2) {
                 continue;
             }
-
+            
+            // Make guess on complete Vars
             ArrayList<Variable> varsCandidates = new ArrayList<>(state.currentGrain.completeVars);
             for(long i = 0; i < (1 << varsCandidates.size()); i++) {
                 HashSet<Variable> completeVars = new HashSet<>();
@@ -72,8 +77,12 @@ public class GrainConcurrentState extends GrainState {
                     }
                     j = j >> 1;
                 }
+                // Make a copy of current grain
                 Grain newGrain = new Grain(state.currentGrain, completeVars);
+                // Make a copy of the state but with a new empty current grain
                 NondetState newState = new NondetState(state);
+                // Add current grain into state:
+                // Update afterSet
                 boolean flagDependent = false;
                 if(newState.afterSet.isEmpty()) {
                     flagDependent = true;
@@ -88,6 +97,7 @@ public class GrainConcurrentState extends GrainState {
                         }
                     }
                 }
+                // if current grain contains e2 and it is dependent with the grain containing e1, then ignore it.
                 if(!witnessE2 || !flagDependent) {
                     newState.guessedCompleteVars.addAll(completeVars);
                     newState.guessedIncompleteVars.addAll(incompleteVars);
@@ -110,6 +120,7 @@ public class GrainConcurrentState extends GrainState {
             return false;
         }
         for(NondetState state: nondetStates) {
+            // Contains e2 and all guessings are correct
             if(state.containsE2 && state.guessedCompleteVars.isEmpty() && state.guessedIncompleteVars.isEmpty()) {
                 return true;
             }
@@ -119,7 +130,7 @@ public class GrainConcurrentState extends GrainState {
     
     public boolean finalCheck() {
         for(NondetState state: nondetStates) {
-            if(state.containsE2) {
+            if(state.containsE2 && state.guessedIncompleteVars.isEmpty()) {
                 return true;
             }
         }

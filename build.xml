@@ -129,13 +129,13 @@
         </java>
     </target>
     <target name="grain" depends="build">
-        <java classname="GrainConcurrency" fork="true">
+        <java classname="GrainSim" fork="true">
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="tests/tests2/trace.std" />
+            <arg value="tests/tests4/trace.std" />
             <arg value="-m" />
-            <arg value="tests/tests2/events" />
+            <arg value="tests/tests4/events" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>

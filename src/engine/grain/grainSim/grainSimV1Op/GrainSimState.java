@@ -1,4 +1,4 @@
-package engine.grain.grainSim.grainSimV1NoOp;
+package engine.grain.grainSim.grainSimV1Op;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -25,11 +25,19 @@ public class GrainSimState extends GrainState {
         ArrayList<NondetState> newStates = new ArrayList<>();
         Iterator<NondetState> iter = nondetStates.iterator();
         while(iter.hasNext()){
+            boolean singleRead = false;
+            boolean longGrain = false;
             NondetState state = iter.next();
             // Every grain containing e2 must start from e2
             if(e.isE2 && !state.currentGrain.threads.isEmpty()) {
                 iter.remove();
                 continue;
+            }
+            if(e.getType().isRead() && state.currentGrain.threads.isEmpty()) {
+                singleRead = true;
+            }
+            if(state.currentGrain.size >= 10) {
+                longGrain = true;
             }
             // update current grain
             if(e.getType().isRead()) {
@@ -54,6 +62,10 @@ public class GrainSimState extends GrainState {
                 if(state.guessedCompleteVars.contains(e.getVariable())) {
                     state.guessedCompleteVars.remove(e.getVariable());
                 }
+                if(state.currentGrain.wtVars.contains(e.getVariable())) {
+                    iter.remove();
+                    continue;
+                }
                 state.currentGrain.wtVars.add(e.getVariable());
                 // Add current write var into completeVars as a candidate
                 if(!state.currentGrain.incompleteVars.contains(e.getVariable())) {
@@ -61,6 +73,7 @@ public class GrainSimState extends GrainState {
                 }
             }
             state.currentGrain.threads.add(e.getThread());
+            state.currentGrain.size++;
             
             // Stop current grain here
             // If before e1 or after e2, do not add current grain into checking.
@@ -117,6 +130,9 @@ public class GrainSimState extends GrainState {
                     newStates.add(newState);
                 }
             }
+            if(singleRead || longGrain) {
+                iter.remove();
+            }
         }
         if(e.isE1) {
             // All grains stop here
@@ -168,6 +184,7 @@ class Grain {
     public HashSet<Variable> incompleteVars;
     public HashSet<Variable> completeVars;
     public boolean e1Grain;
+    public int size;
 
     public Grain() {
         threads = new HashSet<>();
@@ -175,13 +192,19 @@ class Grain {
         rdVars = new HashSet<>();
         incompleteVars = new HashSet<>();
         completeVars = new HashSet<>();
+        size = 0;
     }
 
     public Grain(Grain grain, HashSet<Variable> completeVars) {
-        this.threads = new HashSet<>(grain.threads);
-        this.wtVars = new HashSet<>(grain.wtVars);
-        this.rdVars = new HashSet<>(grain.rdVars);
-        this.completeVars = new HashSet<>(completeVars);
+        this.threads = new HashSet<>();
+        this.threads.addAll(grain.threads);
+        this.wtVars = new HashSet<>();
+        this.wtVars.addAll(grain.wtVars);
+        this.rdVars = new HashSet<>();
+        this.rdVars.addAll(grain.rdVars);
+        this.completeVars = new HashSet<>();
+        this.completeVars.addAll(completeVars);
+        this.size = grain.size;
     }
 
     boolean isDependentWith(Grain other) {
@@ -249,8 +272,11 @@ class NondetState {
     public NondetState(NondetState state) {
         currentGrain = new Grain();
         afterSet = new HashSet<>(state.afterSet);
+        afterSet.addAll(state.afterSet);
         guessedCompleteVars = new HashSet<>(state.guessedCompleteVars);
-        guessedIncompleteVars = new HashSet<>(state.guessedIncompleteVars);
+        guessedCompleteVars.addAll(state.guessedCompleteVars);
+        guessedIncompleteVars = new HashSet<>();
+        guessedIncompleteVars.addAll(state.guessedIncompleteVars);
     }
 
     public void print() {

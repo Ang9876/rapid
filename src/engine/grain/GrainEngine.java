@@ -57,11 +57,18 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
             if(eventCount == e1Index) {
                 handlerEvent.isE1 = true;
             }
+            else {
+                handlerEvent.isE1 = false;
+            }
             if(eventCount == e2Index) {
                 handlerEvent.isE2 = true;
             }
+            else {
+                handlerEvent.isE2 = false;
+            }
 			stdParser.getNextEvent(handlerEvent);
             boolean matched = handlerEvent.Handle(state);
+            state.printMemory();
             if (matched) {
                 flag = true;
                 break;
