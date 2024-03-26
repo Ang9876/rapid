@@ -69,6 +69,10 @@ public class ParseStandard {
 		return new HashSet<Thread> (this.threadMap.values());
 	}
 
+	public HashMap<String, Thread> getThreadMap() {
+		return this.threadMap;
+	}
+
 	public void eInfo2Event(Event e) {
 		String tname = eInfo.thread;
 		if (!(threadMap.containsKey(tname))) {

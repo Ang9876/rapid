@@ -2,6 +2,7 @@ package engine.grain;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -17,6 +18,7 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
     protected long totalSkippedEvents;
     
     protected HashSet<Thread> threadSet;
+    protected HashMap<String, Thread> threadMap;
     protected S state;
 
     protected long startTimeAnalysis = 0;
@@ -93,6 +95,7 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
 	protected void initializeReaderSTD(String trace_file) {
         stdParser = new ParseStandard(trace_file, true);
 		threadSet = stdParser.getThreadSet();
+        threadMap = stdParser.getThreadMap();
     }
 
 	protected void initializeReaderRR(String trace_file) {}
