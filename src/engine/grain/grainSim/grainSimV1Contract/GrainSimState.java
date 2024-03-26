@@ -26,7 +26,6 @@ public class GrainSimState extends GrainState {
         TreeSet<NondetState> newStates = new TreeSet<>(new StateComparator());
         Iterator<NondetState> iter = nondetStates.iterator();
         while(iter.hasNext()){
-            // boolean singleRead = false;
             // boolean longGrain = false;
             NondetState state = iter.next();
             // Every grain containing e2 must start from e2
@@ -80,21 +79,25 @@ public class GrainSimState extends GrainState {
                 // } 
                 state.wtVars.add(e.getVariable());
             }
+            // If dependent with last grain, then remove this choice
+            if(state.isDependentLastGrain(e.getThread(), e.getVariable(), e.getType().isRead())) {
+                continue;
+            }
             state.size++;
             
             // Stop current grain here
             // If before e1 or after e2, do not add current grain into checking.
             if(!witnessE1 || state.containsE2) {
                 state.hashString = state.toString();
-                if(!newStates.contains(state)) {
-                    newStates.add(state);
-                }
+                newStates.add(state);
                 continue;
             }
 
             // Make guesses on complete Vars
             HashSet<Variable> varsCand = new HashSet<>(state.wtVars);
             varsCand.removeAll(state.rdVars);
+            // Remove candidates
+            varsCand.removeAll(state.completeByContract);
             ArrayList<Variable> varsCandidates = new ArrayList<>(varsCand);
             for(long i = 0; i < (1 << varsCandidates.size()); i++) {
                 HashSet<Variable> completeVars = new HashSet<>();
@@ -123,21 +126,21 @@ public class GrainSimState extends GrainState {
                     NondetState newState = new NondetState(state);
                     if(dependent) {
                         newState.addAfterSet(state, completeVars, incompleteVars, e.isE1);
+                        // Store last grain
+                        if(!e.isE1) {
+                            newState.setLastGrain(state, completeVars);
+                        }
                     }
                     newState.hashString = newState.toString();
                     if(witnessE2) {
                         newState.containsE2 = true;
                     }
-                    if(!newStates.contains(newState)) {
-                        newStates.add(newState);
-                    }
+                    newStates.add(newState);
                 }
             }
             if(!e.isE1) {
                 state.hashString = state.toString();
-                if(!newStates.contains(state)) {
-                    newStates.add(state);
-                }
+                newStates.add(state);
             }
         }
         nondetStates = newStates;
@@ -182,9 +185,13 @@ class NondetState {
     public HashSet<Thread> threads;
     public HashSet<Variable> wtVars;
     public HashSet<Variable> rdVars;
+    public HashSet<Variable> completeByContract;
     public int size;
     boolean containsE2;
-    public HashSet<Variable> singleWtVars;
+    // last grain
+    public HashSet<Thread> lastGrainThreads;
+    public HashSet<Variable> lastGrainRdVars;
+    public HashSet<Variable> lastGrainWtVars;
     // after set
     public HashSet<Thread> afterSetThreads;
     public HashSet<Variable> afterSetRdVars;
@@ -202,7 +209,10 @@ class NondetState {
         rdVars = new HashSet<>();
         size = 0;
         containsE2 = false;
-        singleWtVars = new HashSet<>();
+        completeByContract = new HashSet<>();
+        lastGrainThreads = new HashSet<>(); 
+        lastGrainRdVars = new HashSet<>(); 
+        lastGrainWtVars = new HashSet<>(); 
         afterSetThreads = new HashSet<>();
         afterSetRdVars = new HashSet<>();
         afterSetWtVars = new HashSet<>();
@@ -219,7 +229,11 @@ class NondetState {
         this.wtVars = new HashSet<>();
         this.rdVars = new HashSet<>();
         this.size = state.size;
-        singleWtVars = new HashSet<>();
+        containsE2 = state.containsE2;
+        completeByContract = new HashSet<>();
+        lastGrainThreads = new HashSet<>(); 
+        lastGrainRdVars = new HashSet<>(); 
+        lastGrainWtVars = new HashSet<>(); 
         afterSetThreads = new HashSet<>(state.afterSetThreads);
         afterSetRdVars = new HashSet<>(state.afterSetRdVars);
         afterSetWtVars = new HashSet<>(state.afterSetWtVars);
@@ -230,7 +244,7 @@ class NondetState {
         guessedIncompleteVars = new HashSet<>(state.guessedIncompleteVars);
     }
 
-    boolean isDependent(HashSet<Variable> completeVars) {
+    public boolean isDependent(HashSet<Variable> completeVars) {
         for(Thread t: this.threads) {
             if(afterSetThreads.contains(t)) {
                 return true;
@@ -249,7 +263,7 @@ class NondetState {
         return false;
     }
 
-    boolean isDependentNoE1(HashSet<Variable> completeVars) {
+    public boolean isDependentNoE1(HashSet<Variable> completeVars) {
         for(Thread t: this.threads) {
             if(afterSetThreadsNoE1.contains(t)) {
                 return true;
@@ -268,7 +282,30 @@ class NondetState {
         return false;
     }
 
-    void addAfterSet(NondetState state, HashSet<Variable> completeVars, HashSet<Variable> incompleteVars, boolean isE1) {
+    public boolean isDependentLastGrain(Thread t, Variable v, boolean isRead) {
+        if(lastGrainThreads.contains(t)) {
+            return true;
+        }
+        if(!isRead) {
+            if(lastGrainWtVars.contains(v) || lastGrainRdVars.contains(v)) {
+                completeByContract.add(v);
+            }
+        }
+        else if(lastGrainWtVars.contains(v)) {
+            return true;
+        }
+        return false; 
+    }
+
+    public void setLastGrain(NondetState state, HashSet<Variable> completeVars) {
+        lastGrainThreads.addAll(state.threads);
+        HashSet<Variable> wtvars = new HashSet<>(state.wtVars);
+        wtvars.removeAll(completeVars);
+        lastGrainWtVars.addAll(wtvars);
+        lastGrainRdVars.addAll(state.wtVars);
+    }
+
+    public void addAfterSet(NondetState state, HashSet<Variable> completeVars, HashSet<Variable> incompleteVars, boolean isE1) {
         afterSetThreads.addAll(state.threads);
         afterSetRdVars.addAll(state.rdVars);
         HashSet<Variable> wtvars = new HashSet<>(state.wtVars);
@@ -291,6 +328,7 @@ class NondetState {
 
     public String toString() {
         return  setToString(threads) + setToString(wtVars) + setToString(rdVars) + 
+                setToString(lastGrainThreads) + setToString(lastGrainRdVars) + setToString(lastGrainWtVars) +
                 setToString(afterSetThreads) + setToString(afterSetRdVars) + setToString(afterSetWtVars) +
                 setToString(afterSetThreadsNoE1) + setToString(afterSetRdVarsNoE1) + setToString(afterSetWtVarsNoE1) +  
                 setToString(guessedCompleteVars) + setToString(guessedIncompleteVars);

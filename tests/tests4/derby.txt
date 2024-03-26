@@ -47,3 +47,45 @@ grain:
      [java] 131070
      [java] 262142
      [java] 524286
+
+with contract:
+     [java] 2
+     [java] 6
+     [java] 10
+     [java] 18
+     [java] 34
+     [java] 66
+     [java] 130
+     [java] 258
+     [java] 514
+     [java] 1026
+     [java] 2050
+     [java] 4098
+     [java] 8194
+     [java] 16386
+     [java] 32770
+     [java] 65538
+     [java] 131074
+     [java] 262146
+     [java] 524290
+
+contract + single read
+     [java] 2
+     [java] 6
+     [java] 10
+     [java] 18
+     [java] 34
+     [java] 66
+     [java] 130
+     [java] 258
+     [java] 514
+     [java] 1026
+     [java] 2050
+     [java] 4098
+     [java] 8194
+     [java] 16386
+     [java] 32770
+     [java] 65538
+     [java] 131074
+     [java] 262146
+     [java] 524290

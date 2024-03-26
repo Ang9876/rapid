@@ -26,7 +26,7 @@ public class GrainSimState extends GrainState {
         TreeSet<NondetState> newStates = new TreeSet<>(new StateComparator());
         Iterator<NondetState> iter = nondetStates.iterator();
         while(iter.hasNext()){
-            // boolean singleRead = false;
+            boolean singleRead = false;
             // boolean longGrain = false;
             NondetState state = iter.next();
             // Every grain containing e2 must start from e2
@@ -34,9 +34,9 @@ public class GrainSimState extends GrainState {
                 continue;
             }
             // Single read optimization (incomplete)
-            // if(e.getType().isRead() && state.threads.isEmpty()) {
-            //     singleRead = true;
-            // }
+            if(e.getType().isRead() && state.threads.isEmpty()) {
+                singleRead = true;
+            }
 
             // if(state.threads.isEmpty()) {
             //     state.inFrontier = state.afterSetThreads.contains(e.getThread());

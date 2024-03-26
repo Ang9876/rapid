@@ -1,6 +1,6 @@
 import cmd.CmdOptions;
 import cmd.GetOptions;
-import engine.grain.grainSim.grainSimV1NoOp.GrainSimEngine;
+import engine.grain.grainSim.grainSimV1Contract.GrainSimEngine;
 
 public class GrainSim {
     public static void main(String[] args) {		
