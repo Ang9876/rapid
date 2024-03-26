@@ -1,0 +1,11 @@
+num of events = 10263
+num of threads = 6
+T2 = 0,1
+T1 = 1,18
+T20 = 2,2663
+T21 = 3,4546
+T22 = 4,10
+T23 = 5,3025
+threads length = 1,18,2663,4546,10,3025
+num locks = 1
+num vars = 6

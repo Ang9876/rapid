@@ -133,7 +133,7 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="tests/tests4/trace.std" />
+            <arg value="tests/tests4/bufwriter.std" />
             <arg value="-m" />
             <arg value="tests/tests4/events" />
             <classpath refid="rapid.classpath" />
