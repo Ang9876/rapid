@@ -1,8 +1,10 @@
 package engine.grain.varAnnotation;
 
 import java.util.HashMap;
+import java.util.HashSet;
 
 import engine.Engine;
+import event.Variable;
 import parse.ParserType;
 import parse.std.ParseStandard;
 
@@ -31,7 +33,7 @@ public class VarAnnotationEngine extends Engine<VarAnnotationEvent> {
         state.finalCheck();
     }
 
-    public HashMap<Integer, Integer> getLastReads() {
+    public HashMap<Variable, HashSet<Long>> getLastReads() {
         return state.lastReads;
     }
 

@@ -1,12 +1,12 @@
 package engine.grain;
 
-import engine.grain.grainConcurrent.GrainConcurrentState;
 import event.Event;
 
 public class GrainEvent extends Event {
 
     public boolean isE1;
     public boolean isE2;
+    public long eventCount;
     
     public boolean Handle(GrainState state) {
         if(isE1) {

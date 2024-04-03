@@ -56,6 +56,7 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
         eventCount = 0;
         while(stdParser.hasNext()){
 			eventCount = eventCount + 1;
+            handlerEvent.eventCount = eventCount;
             if(eventCount == e1Index) {
                 handlerEvent.isE1 = true;
             }

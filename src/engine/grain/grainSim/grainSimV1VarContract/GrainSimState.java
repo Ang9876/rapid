@@ -1,6 +1,5 @@
 package engine.grain.grainSim.grainSimV1VarContract;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,15 +8,16 @@ import java.util.TreeSet;
 
 import engine.grain.GrainEvent;
 import engine.grain.GrainState;
+import event.Lock;
 import event.Thread;
 import event.Variable;
 
 public class GrainSimState extends GrainState {
     
     TreeSet<NondetState> nondetStates;
-    HashMap<Integer, Integer> lastReads = new HashMap<>();
+    HashMap<Variable, HashSet<Long>> lastReads = new HashMap<>();
 
-    public GrainSimState(HashSet<Thread> tSet, HashMap<Integer, Integer> lastReads) {
+    public GrainSimState(HashSet<Thread> tSet, HashMap<Variable, HashSet<Long>> lastReads) {
         threadSet = tSet;
         nondetStates = new TreeSet<>(new StateComparator());
         NondetState initState = new NondetState();
@@ -32,7 +32,7 @@ public class GrainSimState extends GrainState {
             // boolean longGrain = false;
             NondetState state = iter.next();
             // Every grain containing e2 must start from e2
-            if(e.isE2 && !state.threads.isEmpty()) {
+            if(e.isE2 && !state.currentGrain.threads.isEmpty()) {
                 continue;
             }
             // Single read optimization (incomplete)
@@ -49,45 +49,42 @@ public class GrainSimState extends GrainState {
             // }
 
             // update current grain
-            state.threads.add(e.getThread());
+            state.currentGrain.threads.add(e.getThread());
 
             if(e.getType().isRead()) {
-                if(state.guessedCompleteVars.contains(e.getVariable())) {
-                    continue;
+                if(!state.currentGrain.incompleteWtVars.contains(e.getVariable())) {
+                    state.currentGrain.incompleteRdVars.add(e.getVariable());
                 }
-                if(state.guessedIncompleteVars.contains(e.getVariable())) {
-                    state.guessedIncompleteVars.remove(e.getVariable());
-                }
-                // See a read before any write => incomplete
-                if(!state.wtVars.contains(e.getVariable())) {
-                    state.rdVars.add(e.getVariable());
+                if(lastReads.get(e.getVariable()).contains(e.eventCount)) {
+                    state.currentGrain.incompleteWtVars.remove(e.getVariable());
+                    state.currentGrain.completeVars.add(e.getVariable());
                 }
             }
             if(e.getType().isWrite()) {
-                if(state.guessedIncompleteVars.contains(e.getVariable())) {
-                    continue;
+                if(!lastReads.get(e.getVariable()).contains(e.eventCount)) {
+                    state.currentGrain.incompleteWtVars.add(e.getVariable());
                 }
-                if(state.guessedCompleteVars.contains(e.getVariable())) {
-                    state.guessedCompleteVars.remove(e.getVariable());
+                else {
+                    state.currentGrain.completeVars.add(e.getVariable());
                 }
-                // Double writes optimization (incomplete)
-                // if(state.currentGrain.wtVars.contains(e.getVariable())) {
-                //     iter.remove();
-                //     continue;
-                // }
-                // Many writes optimization (incomplete)
-                // if(state.currentGrain.wtVars.size() > 1) {
-                //     iter.remove();
-                //     continue;
-                // } 
-                state.wtVars.add(e.getVariable());
+            }
+            if(e.getType().isAcquire()) {
+                state.currentGrain.incompleteLocks.add(e.getLock());
+            }
+            if(e.getType().isRelease()) {
+                if(state.currentGrain.incompleteLocks.contains(e.getLock())) {
+                    state.currentGrain.incompleteLocks.remove(e.getLock());
+                    state.currentGrain.completeLocks.add(e.getLock());
+                }
+                else {
+                    state.currentGrain.incompleteLocks.add(e.getLock());
+                }
             }
             // If dependent with last grain, then remove this choice
-            if(state.isDependentLastGrain(e.getThread(), e.getVariable(), e.getType().isRead())) {
-                continue;
-            }
-            state.size++;
-            
+            // if(state.currentGrain.isDependentWith(state.lastGrain)) {
+            //     continue;
+            // }
+
             // Stop current grain here
             // If before e1 or after e2, do not add current grain into checking.
             if(!witnessE1 || state.containsE2) {
@@ -96,50 +93,34 @@ public class GrainSimState extends GrainState {
                 continue;
             }
 
-            // Make guesses on complete Vars
-            HashSet<Variable> varsCand = new HashSet<>(state.wtVars);
-            varsCand.removeAll(state.rdVars);
-            // Remove candidates
-            varsCand.removeAll(state.completeByContract);
-            ArrayList<Variable> varsCandidates = new ArrayList<>(varsCand);
-            for(long i = 0; i < (1 << varsCandidates.size()); i++) {
-                HashSet<Variable> completeVars = new HashSet<>();
-                HashSet<Variable> incompleteVars = new HashSet<>();
-                long j = i;
-                for(int offset = 0; offset < varsCandidates.size(); offset++) {
-                    if(j % 2 == 1) {
-                        completeVars.add(varsCandidates.get(offset));
-                    }
-                    else {
-                        incompleteVars.add(varsCandidates.get(offset));
-                    }
-                    j = j >> 1;
+            
+            // Make a copy of the state but with a new empty current grain
+            boolean wrongWitness = false;
+            boolean dependent = false;
+            if(state.aftSet.threads.isEmpty() || state.currentGrain.isDependentWith(state.aftSet)) {
+                dependent = true;
+                if(witnessE2 && state.currentGrain.isDependentWith(state.aftSetNoE1)) {
+                    wrongWitness = true;
                 }
-                // Make a copy of the state but with a new empty current grain
-                boolean wrongWitness = false;
-                boolean dependent = false;
-                if(state.afterSetThreads.isEmpty() || state.isDependent(completeVars)) {
-                    dependent = true;
-                    if(witnessE2 && state.isDependentNoE1(completeVars)) {
-                        wrongWitness = true;
+            }
+            // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
+            if(!witnessE2 || !wrongWitness) {
+                NondetState newState = new NondetState(state);
+                if(dependent) {
+                    newState.aftSet.updateGrain(state.currentGrain);
+                    if(!e.isE1) {
+                        newState.aftSetNoE1.updateGrain(state.currentGrain);
+                    }
+                    // Store last grain
+                    if(!e.isE1) {
+                        newState.lastGrain.updateGrain(state.currentGrain);
                     }
                 }
-                // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
-                if(!witnessE2 || !wrongWitness) {
-                    NondetState newState = new NondetState(state);
-                    if(dependent) {
-                        newState.addAfterSet(state, completeVars, incompleteVars, e.isE1);
-                        // Store last grain
-                        if(!e.isE1) {
-                            newState.setLastGrain(state, completeVars);
-                        }
-                    }
-                    newState.hashString = newState.toString();
-                    if(witnessE2) {
-                        newState.containsE2 = true;
-                    }
-                    newStates.add(newState);
+                newState.hashString = newState.toString();
+                if(witnessE2) {
+                    newState.containsE2 = true;
                 }
+                newStates.add(newState);
             }
             if(!e.isE1) {
                 state.hashString = state.toString();
@@ -159,7 +140,7 @@ public class GrainSimState extends GrainState {
         }
         for(NondetState state: nondetStates) {
             // Contains e2 and all guessings are correct
-            if(state.containsE2 && state.guessedCompleteVars.isEmpty() && state.guessedIncompleteVars.isEmpty()) {
+            if(state.containsE2) {
                 return true;
             }
         }
@@ -168,7 +149,7 @@ public class GrainSimState extends GrainState {
     
     public boolean finalCheck() {
         for(NondetState state: nondetStates) {
-            if(state.containsE2 && state.guessedIncompleteVars.isEmpty()) {
+            if(state.containsE2) {
                 return true;
             }
         }
@@ -185,144 +166,102 @@ public class GrainSimState extends GrainState {
 
 class NondetState {
     // current grain
-    public HashSet<Thread> threads;
-    public HashSet<Variable> wtVars;
-    public HashSet<Variable> rdVars;
-    public HashSet<Variable> completeByContract;
-    public int size;
+    public Grain currentGrain;
+    public Grain lastGrain;
+    public Grain aftSet;
+    public Grain aftSetNoE1;
     boolean containsE2;
-    // last grain
-    public HashSet<Thread> lastGrainThreads;
-    public HashSet<Variable> lastGrainRdVars;
-    public HashSet<Variable> lastGrainWtVars;
-    // after set
-    public HashSet<Thread> afterSetThreads;
-    public HashSet<Variable> afterSetRdVars;
-    public HashSet<Variable> afterSetWtVars;
-    public HashSet<Thread> afterSetThreadsNoE1;
-    public HashSet<Variable> afterSetRdVarsNoE1;
-    public HashSet<Variable> afterSetWtVarsNoE1;
-    public HashSet<Variable> guessedCompleteVars;
-    public HashSet<Variable> guessedIncompleteVars;
     public String hashString;
 
     public NondetState() {
-        threads = new HashSet<>();
-        wtVars = new HashSet<>();
-        rdVars = new HashSet<>();
-        size = 0;
+        currentGrain = new Grain();
+        lastGrain = new Grain();
+        aftSet = new Grain();
+        aftSetNoE1 = new Grain();
         containsE2 = false;
-        completeByContract = new HashSet<>();
-        lastGrainThreads = new HashSet<>(); 
-        lastGrainRdVars = new HashSet<>(); 
-        lastGrainWtVars = new HashSet<>(); 
-        afterSetThreads = new HashSet<>();
-        afterSetRdVars = new HashSet<>();
-        afterSetWtVars = new HashSet<>();
-        afterSetThreadsNoE1 = new HashSet<>();
-        afterSetRdVarsNoE1 = new HashSet<>();
-        afterSetWtVarsNoE1 = new HashSet<>();
-        guessedCompleteVars = new HashSet<>();
-        guessedIncompleteVars = new HashSet<>();
-        hashString = toString();
     }
 
     public NondetState(NondetState state) {
-        this.threads = new HashSet<>();
-        this.wtVars = new HashSet<>();
-        this.rdVars = new HashSet<>();
-        this.size = state.size;
+        currentGrain = new Grain();
+        lastGrain = new Grain();
+        aftSet = new Grain(state.aftSet);
+        aftSetNoE1 = new Grain(state.aftSetNoE1);
         containsE2 = state.containsE2;
-        completeByContract = new HashSet<>();
-        lastGrainThreads = new HashSet<>(); 
-        lastGrainRdVars = new HashSet<>(); 
-        lastGrainWtVars = new HashSet<>(); 
-        afterSetThreads = new HashSet<>(state.afterSetThreads);
-        afterSetRdVars = new HashSet<>(state.afterSetRdVars);
-        afterSetWtVars = new HashSet<>(state.afterSetWtVars);
-        afterSetThreadsNoE1 = new HashSet<>(state.afterSetThreadsNoE1);
-        afterSetRdVarsNoE1 = new HashSet<>(state.afterSetRdVarsNoE1);
-        afterSetWtVarsNoE1 = new HashSet<>(state.afterSetWtVarsNoE1);
-        guessedCompleteVars = new HashSet<>(state.guessedCompleteVars);
-        guessedIncompleteVars = new HashSet<>(state.guessedIncompleteVars);
+        hashString = this.toString();
     }
 
-    public boolean isDependent(HashSet<Variable> completeVars) {
-        for(Thread t: this.threads) {
-            if(afterSetThreads.contains(t)) {
+    public String toString() {
+        return currentGrain.toString() + lastGrain.toString() + aftSet.toString() + aftSetNoE1.toString();
+    }
+}
+
+class Grain {
+    public HashSet<Thread> threads;
+    public HashSet<Variable> completeVars;
+    public HashSet<Variable> incompleteWtVars;
+    public HashSet<Variable> incompleteRdVars;
+    public HashSet<Lock> completeLocks;
+    public HashSet<Lock> incompleteLocks;
+   
+    public Grain() {
+        threads = new HashSet<>();
+        completeVars = new HashSet<>();
+        incompleteWtVars = new HashSet<>();
+        incompleteRdVars = new HashSet<>();
+        completeLocks = new HashSet<>();
+        incompleteLocks = new HashSet<>();
+    }
+
+    public Grain(Grain other) {
+        threads = new HashSet<>(other.threads);
+        completeVars = new HashSet<>(other.completeVars);
+        incompleteWtVars = new HashSet<>(other.incompleteWtVars);
+        incompleteRdVars = new HashSet<>(other.incompleteRdVars);
+        completeLocks = new HashSet<>(other.completeLocks);
+        incompleteLocks = new HashSet<>(other.incompleteLocks);
+    }
+
+    public boolean isDependentWith(Grain other) {
+        for(Thread t: other.threads) {
+            if(threads.contains(t)) {
                 return true;
             }
         }
-        for(Variable v: this.wtVars) {
-            if(!completeVars.contains(v) && (afterSetWtVars.contains(v) || afterSetRdVars.contains(v))) {
+        for(Variable v: other.incompleteWtVars) {
+            if(incompleteRdVars.contains(v) || incompleteWtVars.contains(v) || completeVars.contains(v)) {
                 return true;
             }
         }
-        for(Variable v: this.rdVars) {
-            if(afterSetWtVars.contains(v)) {
+        for(Variable v: other.incompleteRdVars) {
+            if(incompleteWtVars.contains(v) || completeVars.contains(v)) {
+                return true;
+            }
+        }
+        for(Variable v: other.completeVars) {
+            if(incompleteWtVars.contains(v) || incompleteRdVars.contains(v)) {
+                return true;
+            }
+        }
+        for(Lock l: other.incompleteLocks) {
+            if(incompleteLocks.contains(l) || completeLocks.contains(l)) {
+                return true;
+            }
+        }
+        for(Lock l: other.completeLocks) {
+            if(incompleteLocks.contains(l)) {
                 return true;
             }
         }
         return false;
     }
 
-    public boolean isDependentNoE1(HashSet<Variable> completeVars) {
-        for(Thread t: this.threads) {
-            if(afterSetThreadsNoE1.contains(t)) {
-                return true;
-            }
-        }
-        for(Variable v: this.wtVars) {
-            if(!completeVars.contains(v) && (afterSetWtVarsNoE1.contains(v) || afterSetRdVarsNoE1.contains(v))) {
-                return true;
-            }
-        }
-        for(Variable v: this.rdVars) {
-            if(afterSetWtVarsNoE1.contains(v)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean isDependentLastGrain(Thread t, Variable v, boolean isRead) {
-        if(lastGrainThreads.contains(t)) {
-            return true;
-        }
-        if(!isRead) {
-            if(lastGrainWtVars.contains(v) || lastGrainRdVars.contains(v)) {
-                completeByContract.add(v);
-            }
-        }
-        else if(lastGrainWtVars.contains(v)) {
-            return true;
-        }
-        return false; 
-    }
-
-    public void setLastGrain(NondetState state, HashSet<Variable> completeVars) {
-        lastGrainThreads.addAll(state.threads);
-        HashSet<Variable> wtvars = new HashSet<>(state.wtVars);
-        wtvars.removeAll(completeVars);
-        lastGrainWtVars.addAll(wtvars);
-        lastGrainRdVars.addAll(state.wtVars);
-    }
-
-    public void addAfterSet(NondetState state, HashSet<Variable> completeVars, HashSet<Variable> incompleteVars, boolean isE1) {
-        afterSetThreads.addAll(state.threads);
-        afterSetRdVars.addAll(state.rdVars);
-        HashSet<Variable> wtvars = new HashSet<>(state.wtVars);
-        wtvars.removeAll(completeVars);
-        afterSetWtVars.addAll(wtvars);
-        afterSetRdVars.removeAll(afterSetWtVars);
-        if(!isE1) {
-            afterSetThreadsNoE1.addAll(state.threads);
-            afterSetRdVarsNoE1.addAll(state.rdVars);
-            afterSetWtVarsNoE1.addAll(wtvars); 
-            afterSetRdVarsNoE1.removeAll(afterSetWtVarsNoE1);
-        }
-        guessedCompleteVars.addAll(completeVars);
-        guessedIncompleteVars.addAll(incompleteVars);
+    public void updateGrain(Grain other) {
+        threads.addAll(other.threads);
+        completeVars.addAll(other.completeVars);
+        incompleteWtVars.addAll(other.incompleteWtVars);
+        incompleteRdVars.addAll(other.incompleteRdVars);
+        completeLocks.addAll(other.completeLocks);
+        incompleteLocks.addAll(other.incompleteLocks); 
     }
 
     private <T> String setToString(HashSet<T> set) {
@@ -330,28 +269,8 @@ class NondetState {
     }
 
     public String toString() {
-        return  setToString(threads) + setToString(wtVars) + setToString(rdVars) + 
-                setToString(lastGrainThreads) + setToString(lastGrainRdVars) + setToString(lastGrainWtVars) +
-                setToString(afterSetThreads) + setToString(afterSetRdVars) + setToString(afterSetWtVars) +
-                setToString(afterSetThreadsNoE1) + setToString(afterSetRdVarsNoE1) + setToString(afterSetWtVarsNoE1) +  
-                setToString(guessedCompleteVars) + setToString(guessedIncompleteVars);
-    }
-
-    public void print() {
-        System.out.println("State: ");
-        System.out.println("AfterSets:");
-        System.out.print("GuessedComplete: ");
-        for(Variable v: guessedCompleteVars) {
-            System.out.print(v + " ");
-        }
-        System.out.println();
-        System.out.print("GuessedIncomplete: ");
-        for(Variable v: guessedIncompleteVars) {
-            System.out.print(v + " ");
-        }
-        System.out.println();
-        System.out.println("ContainsE2: " + containsE2);
-    }
+        return  setToString(threads) + setToString(incompleteWtVars) + setToString(incompleteRdVars) + setToString(incompleteLocks); 
+    } 
 }
 
 class StateComparator implements Comparator<NondetState> {
