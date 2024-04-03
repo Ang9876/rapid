@@ -12,10 +12,11 @@ public class VarAnnotationEngine extends Engine<VarAnnotationEvent> {
 
     VarAnnotationState state;
 
-    public VarAnnotationEngine(ParserType pType, String trace_folder) {
+    public VarAnnotationEngine(ParserType pType, String trace_folder, ParseStandard stdParser) {
         super(pType);
-        initializeReaderSTD(trace_folder);
+        this.stdParser = stdParser;
         state = new VarAnnotationState();
+        handlerEvent = new VarAnnotationEvent();
     }
 
     public void analyzeTrace() {
@@ -26,8 +27,11 @@ public class VarAnnotationEngine extends Engine<VarAnnotationEvent> {
     }
 
     protected void analyzeTraceSTD() {
+        long eventCount = 0;
         while(stdParser.hasNext()){
 			stdParser.getNextEvent(handlerEvent);
+            eventCount += 1;
+            handlerEvent.eventCounter = eventCount;
             handlerEvent.Handle(state);
         }
         state.finalCheck();
@@ -41,9 +45,7 @@ public class VarAnnotationEngine extends Engine<VarAnnotationEvent> {
 
 	protected void initializeReaderCSV(String trace_file) {}
 
-	protected void initializeReaderSTD(String trace_file) {
-        stdParser = new ParseStandard(trace_file, true);
-    }
+	protected void initializeReaderSTD(String trace_file) {}
 
 	protected void initializeReaderRR(String trace_file) {}
 

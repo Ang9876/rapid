@@ -133,9 +133,9 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="tests/tests4/clean.std" />
+            <arg value="tests/tests5/bufwriter.std" />
             <arg value="-m" />
-            <arg value="tests/tests4/events" />
+            <arg value="tests/tests5/events" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>

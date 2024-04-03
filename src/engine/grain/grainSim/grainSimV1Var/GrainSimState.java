@@ -15,7 +15,7 @@ import event.Variable;
 public class GrainSimState extends GrainState {
     
     TreeSet<NondetState> nondetStates;
-    HashMap<Variable, HashSet<Long>> lastReads = new HashMap<>();
+    HashMap<Variable, HashSet<Long>> lastReads;
 
     public GrainSimState(HashSet<Thread> tSet, HashMap<Variable, HashSet<Long>> lastReads) {
         threadSet = tSet;
@@ -23,6 +23,7 @@ public class GrainSimState extends GrainState {
         NondetState initState = new NondetState();
         nondetStates.add(initState);    
         this.lastReads = lastReads;
+        System.out.println(this.lastReads);
     }
 
     public boolean update(GrainEvent e) {
@@ -35,27 +36,18 @@ public class GrainSimState extends GrainState {
             if(e.isE2 && !state.currentGrain.threads.isEmpty()) {
                 continue;
             }
-            // Single read optimization (incomplete)
-            // if(e.getType().isRead() && state.threads.isEmpty()) {
-            //     singleRead = true;
-            // }
-
-            // if(state.threads.isEmpty()) {
-            //     state.inFrontier = state.afterSetThreads.contains(e.getThread());
-            // }
-            // if(state.afterSetThreads.contains(e.getThread()) != state.inFrontier) {
-            //     iter.remove();
-            //     continue;
-            // }
 
             // update current grain
             state.currentGrain.threads.add(e.getThread());
+            if(e.getType().isExtremeType()) {
+                state.currentGrain.threads.add(e.getTarget());
+            }
 
             if(e.getType().isRead()) {
                 if(!state.currentGrain.incompleteWtVars.contains(e.getVariable())) {
                     state.currentGrain.incompleteRdVars.add(e.getVariable());
                 }
-                if(lastReads.get(e.getVariable()).contains(e.eventCount)) {
+                else if(lastReads.get(e.getVariable()).contains(e.eventCount)) {
                     state.currentGrain.incompleteWtVars.remove(e.getVariable());
                     state.currentGrain.completeVars.add(e.getVariable());
                 }
@@ -82,8 +74,8 @@ public class GrainSimState extends GrainState {
             }
 
             // Stop current grain here
-            // If before e1 or after e2, do not add current grain into checking.
-            if(!witnessE1 || state.containsE2) {
+            // If before e1, do not add current grain into checking.
+            if(!witnessE1) {
                 state.hashString = state.toString();
                 newStates.add(state);
                 continue;
@@ -91,29 +83,32 @@ public class GrainSimState extends GrainState {
 
             
             // Make a copy of the state but with a new empty current grain
-            boolean wrongWitness = false;
             boolean dependent = false;
             if(state.aftSet.threads.isEmpty() || state.currentGrain.isDependentWith(state.aftSet)) {
                 dependent = true;
-                if(witnessE2 && state.currentGrain.isDependentWith(state.aftSetNoE1)) {
-                    wrongWitness = true;
-                }
-            }
-            // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
-            if(!witnessE2 || !wrongWitness) {
-                NondetState newState = new NondetState(state);
-                if(dependent) {
-                    newState.aftSet.updateGrain(state.currentGrain);
-                    if(!e.isE1) {
-                        newState.aftSetNoE1.updateGrain(state.currentGrain);
+                if(witnessE2){
+                    if(state.currentGrain.isDependentWith(state.aftSetNoE1)) {
+                        // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
+                        state.hashString = state.toString();
+                        newStates.add(state);
+                        continue;
+                    }
+                    else {
+                        // if current grain contains e2 and it is independent of all grains other than the grain containing e1, then return true. 
+                        return true;
                     }
                 }
-                newState.hashString = newState.toString();
-                if(witnessE2) {
-                    newState.containsE2 = true;
-                }
-                newStates.add(newState);
             }
+
+            NondetState newState = new NondetState(state);
+            if(dependent) {
+                newState.aftSet.updateGrain(state.currentGrain);
+                if(!e.isE1) {
+                    newState.aftSetNoE1.updateGrain(state.currentGrain);
+                }
+            }
+            newState.hashString = newState.toString();
+            newStates.add(newState);
             if(!e.isE1) {
                 state.hashString = state.toString();
                 newStates.add(state);
@@ -123,28 +118,10 @@ public class GrainSimState extends GrainState {
         if(!witnessE1) {
             nondetStates.add(new NondetState());
         }
-        return isConcurrent();
-    }
-
-    private boolean isConcurrent() {
-        if(!witnessE2) {
-            return false;
-        }
-        for(NondetState state: nondetStates) {
-            // Contains e2 and all guessings are correct
-            if(state.containsE2) {
-                return true;
-            }
-        }
         return false;
     }
-    
+
     public boolean finalCheck() {
-        for(NondetState state: nondetStates) {
-            if(state.containsE2) {
-                return true;
-            }
-        }
         return false;
     }
 
@@ -161,21 +138,19 @@ class NondetState {
     public Grain currentGrain;
     public Grain aftSet;
     public Grain aftSetNoE1;
-    boolean containsE2;
     public String hashString;
 
     public NondetState() {
         currentGrain = new Grain();
         aftSet = new Grain();
         aftSetNoE1 = new Grain();
-        containsE2 = false;
+        hashString = this.toString();
     }
 
     public NondetState(NondetState state) {
         currentGrain = new Grain();
         aftSet = new Grain(state.aftSet);
         aftSetNoE1 = new Grain(state.aftSetNoE1);
-        containsE2 = state.containsE2;
         hashString = this.toString();
     }
 
@@ -249,8 +224,11 @@ class Grain {
         completeVars.addAll(other.completeVars);
         incompleteWtVars.addAll(other.incompleteWtVars);
         incompleteRdVars.addAll(other.incompleteRdVars);
+        completeVars.removeAll(incompleteWtVars);
+        completeVars.removeAll(incompleteRdVars);
         completeLocks.addAll(other.completeLocks);
         incompleteLocks.addAll(other.incompleteLocks); 
+        completeLocks.removeAll(incompleteLocks);
     }
 
     private <T> String setToString(HashSet<T> set) {

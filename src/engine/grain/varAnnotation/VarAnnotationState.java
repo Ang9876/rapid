@@ -14,7 +14,7 @@ public class VarAnnotationState {
         Variable var = e.getVariable();
         if(activeVarMap.containsKey(var)) {
             long lastRead = activeVarMap.get(var);
-            if(lastReads.containsKey(var)) {
+            if(!lastReads.containsKey(var)) {
                 lastReads.put(var, new HashSet<>());
             }
             lastReads.get(var).add(lastRead);
@@ -30,7 +30,7 @@ public class VarAnnotationState {
     public void finalCheck() {
         for(Variable var: activeVarMap.keySet()) {
             long lastRead = activeVarMap.get(var);
-            if(lastReads.containsKey(var)) {
+            if(!lastReads.containsKey(var)) {
                 lastReads.put(var, new HashSet<>());
             }
             lastReads.get(var).add(lastRead);
