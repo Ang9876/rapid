@@ -23,7 +23,6 @@ public class GrainSimState extends GrainState {
         NondetState initState = new NondetState();
         nondetStates.add(initState);    
         this.lastReads = lastReads;
-        System.out.println(this.lastReads);
     }
 
     public boolean update(GrainEvent e) {
@@ -80,28 +79,23 @@ public class GrainSimState extends GrainState {
                 newStates.add(state);
                 continue;
             }
-
             
-            // Make a copy of the state but with a new empty current grain
-            boolean dependent = false;
-            if(state.aftSet.threads.isEmpty() || state.currentGrain.isDependentWith(state.aftSet)) {
-                dependent = true;
-                if(witnessE2){
-                    if(state.currentGrain.isDependentWith(state.aftSetNoE1)) {
-                        // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
-                        state.hashString = state.toString();
-                        newStates.add(state);
-                        continue;
-                    }
-                    else {
-                        // if current grain contains e2 and it is independent of all grains other than the grain containing e1, then return true. 
-                        return true;
-                    }
+            if(witnessE2){
+                if(state.currentGrain.isDependentWith(state.aftSetNoE1)) {
+                    // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
+                    state.hashString = state.toString();
+                    newStates.add(state);
+                    continue;
+                }
+                else {
+                    // if current grain contains e2 and it is independent of all grains other than the grain containing e1, then return true. 
+                    return true;
                 }
             }
 
+            // Make a copy of the state but with a new empty current grain
             NondetState newState = new NondetState(state);
-            if(dependent) {
+            if(state.aftSet.threads.isEmpty() || state.currentGrain.isDependentWith(state.aftSet)) {
                 newState.aftSet.updateGrain(state.currentGrain);
                 if(!e.isE1) {
                     newState.aftSetNoE1.updateGrain(state.currentGrain);
@@ -123,6 +117,11 @@ public class GrainSimState extends GrainState {
 
     public boolean finalCheck() {
         return false;
+    }
+
+    @Override
+    public long size() {
+        return nondetStates.size();
     }
 
     public void printMemory() {

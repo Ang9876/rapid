@@ -72,7 +72,10 @@ public class GrainSimState extends GrainState {
                 }
             }
             // If dependent with last grain, then remove this choice
+            // Last grain is not empty only if last grain is dependent with the grain containing E1
             if(state.currentGrain.isDependentWith(state.lastGrain)) {
+                state.hashString = state.toString();
+                newStates.add(state);
                 continue;
             }
 
@@ -84,27 +87,22 @@ public class GrainSimState extends GrainState {
                 continue;
             }
 
-            
-            // Make a copy of the state but with a new empty current grain
-            boolean dependent = false;
-            if(state.aftSet.threads.isEmpty() || state.currentGrain.isDependentWith(state.aftSet)) {
-                dependent = true;
-                if(witnessE2){
-                    if(state.currentGrain.isDependentWith(state.aftSetNoE1)) {
-                        // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
-                        state.hashString = state.toString();
-                        newStates.add(state);
-                        continue;
-                    }
-                    else {
-                        // if current grain contains e2 and it is independent of all grains other than the grain containing e1, then return true. 
-                        return true;
-                    }
+            if(witnessE2){
+                if(state.currentGrain.isDependentWith(state.aftSetNoE1)) {
+                    // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
+                    state.hashString = state.toString();
+                    newStates.add(state);
+                    continue;
+                }
+                else {
+                    // if current grain contains e2 and it is independent of all grains other than the grain containing e1, then return true. 
+                    return true;
                 }
             }
             
+            // Make a copy of the state but with a new empty current grain
             NondetState newState = new NondetState(state);
-            if(dependent) {
+            if(state.aftSet.threads.isEmpty() || state.currentGrain.isDependentWith(state.aftSet)) {
                 newState.aftSet.updateGrain(state.currentGrain);
                 if(!e.isE1) {
                     newState.aftSetNoE1.updateGrain(state.currentGrain);
@@ -123,6 +121,11 @@ public class GrainSimState extends GrainState {
             nondetStates.add(new NondetState());
         }
         return false;
+    }
+
+    @Override
+    public long size() {
+        return nondetStates.size();
     }
 
     public boolean finalCheck() {

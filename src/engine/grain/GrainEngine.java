@@ -54,6 +54,7 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
     protected void analyzeTraceSTD() {
         boolean flag = false;
         eventCount = 0;
+        long sizeAcc = 0;
         while(stdParser.hasNext()){
 			eventCount = eventCount + 1;
             handlerEvent.eventCount = eventCount;
@@ -71,7 +72,12 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
             }
 			stdParser.getNextEvent(handlerEvent);
             boolean matched = handlerEvent.Handle(state);
-            state.printMemory();
+            sizeAcc += state.size();
+            if(eventCount % 500 == 0) {
+                System.out.println(sizeAcc / 500);
+                sizeAcc = 0;
+            }
+            // state.printMemory();
             if (matched) {
                 flag = true;
                 break;

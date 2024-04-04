@@ -19,4 +19,6 @@ public abstract class GrainState extends State {
     public abstract boolean finalCheck();
 
     public void printMemory() {}
+
+    public abstract long size();
 }

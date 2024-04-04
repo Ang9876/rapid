@@ -137,6 +137,11 @@ public class GrainConcurrentState extends GrainState {
         return false;
     }
 
+    @Override
+    public long size() {
+        return nondetStates.size();
+    }
+
     public void printMemory() {
         // for(NondetState state: nondetStates) {
         //     state.print();
