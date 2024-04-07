@@ -133,9 +133,7 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="benchmark/STD-Format/sunflow.std" />
-            <arg value="-prob" />
-            <arg value="300" />
+            <arg value="benchmark/STD-Format/LinkedList.std" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>
@@ -144,9 +142,7 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="benchmark/STD-Format/bufwriter.std" />
-            <arg value="-prob" />
-            <arg value="100000000" />
+            <arg value="benchmark/STD-Format/xalan.std" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>
