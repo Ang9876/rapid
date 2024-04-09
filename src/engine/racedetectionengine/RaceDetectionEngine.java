@@ -188,11 +188,11 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 	@Override
 	protected void printCompletionStatus() {
 		if (enablePrintStatus) {
-			System.out.println("Analysis complete");
+			// System.out.println("Analysis complete");
 			System.out.println(
 					"Number of 'racy' events found = " + Long.toString(raceCount));
-			System.out.println(
-					"Number of 'racy' lines found = " + this.locIdsOfRacyEvents.size());
+			// System.out.println(
+					// "Number of 'racy' lines found = " + this.locIdsOfRacyEvents.size());
 		}
 	}
 

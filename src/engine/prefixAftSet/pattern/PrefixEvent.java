@@ -25,7 +25,7 @@ public class PrefixEvent extends VectorClockEvent {
                 }
             }
             else {
-                if(!threadLocal && (state.prob == 1 || Math.random() <= state.prob)) {
+                if(!threadLocal && !this.type.isRelease() && !this.type.isRead() && (state.prob == 1 || Math.random() <= state.prob)) {
                     DependentInfo dep_new = (DependentInfo) PipedDeepCopy.copy(track_state.getValue1());
                     ignore(dep_new);
                     if(!dep_new.allThreads(state.tSet.size())) {

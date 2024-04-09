@@ -32,7 +32,7 @@ public class SyncPreservingRaceOfflineEngine extends RaceDetectionEngine<SyncPre
 		if(time_reporting){
 			long stopTimeAnalysis = System.currentTimeMillis(); //System.nanoTime();
 			long timeAnalysis = stopTimeAnalysis - startTimeAnalysis;
-			System.out.println("Time for Phase-1 = " + timeAnalysis + " milliseconds");	
+			// System.out.println("Time for Phase-1 = " + timeAnalysis + " milliseconds");	
 		}
 		
 		this.lockToThreadSet = orderedVarsEngine.getLockToThreadSet();

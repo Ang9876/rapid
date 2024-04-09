@@ -133,7 +133,7 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="benchmark/STD-Format/LinkedList.std" />
+            <arg value="benchmark/STD-Format/readerswriters.std" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>

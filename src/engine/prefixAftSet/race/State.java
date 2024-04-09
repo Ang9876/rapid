@@ -1,6 +1,7 @@
 package engine.prefixAftSet.race;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.TreeMap;
@@ -16,6 +17,7 @@ public class State {
     public boolean racy = false;
     public long timestamp;
     private long lifetime;
+    private HashMap<Thread, HashMap<Lock, Integer>> lockHold = new HashMap<>();
     public HashSet<Integer> racyLocs = new HashSet<>();
 
     public State(int numOfThreads, long lifetime) {
@@ -29,7 +31,9 @@ public class State {
         boolean matched = false;
         
         timestamp++;
-
+        if(!lockHold.containsKey(e.getThread())) {
+			lockHold.put(e.getThread(), new HashMap<>());
+		}
 
         for(Iterator<DependentInfo> iterator = states.keySet().iterator(); iterator.hasNext();){
             DependentInfo dep = iterator.next(); 
@@ -37,7 +41,7 @@ public class State {
             if(lifetime > 0 && birth > 0 && timestamp - birth >= lifetime) {
                 continue;
             }
-            
+            // System.out.println(dep.hashString);
             if(!racy && dep.candVar != null && e.getType().isAccessType() && !dep.threads.contains(e.getThread())) {
                 racy = (e.getVariable() == dep.candVar) && (e.getType().isWrite() || dep.isWriteCandidate);
             }
@@ -77,12 +81,12 @@ public class State {
                 if(e.getType().isWrite()) {
                     dep.wtVars.remove(e.getVariable());
                 }
-                if(e.getType().isAcquire()) {
-                    dep.openLocks.add(e.getLock());
-                }
-                if(e.getType().isRelease()) {
-                    dep.openLocks.remove(e.getLock());
-                }   
+                // if(e.getType().isAcquire()) {
+                //     dep.openLocks.add(e.getLock());
+                // }
+                // if(e.getType().isRelease()) {
+                //     dep.openLocks.remove(e.getLock());
+                // }   
             }
             dep.hashString = dep.toString();
             if(dep.threads.size() != numOfThreads) {
@@ -104,6 +108,19 @@ public class State {
             matched = true;
         }
         racy = false;
+        if(e.getType().isAcquire()) {
+            if(!lockHold.get(e.getThread()).containsKey(e.getLock())) {
+                lockHold.get(e.getThread()).put(e.getLock(), 0);
+            }
+			lockHold.get(e.getThread()).put(e.getLock(), lockHold.get(e.getThread()).get(e.getLock()) + 1);
+		}
+		if(e.getType().isRelease()) {
+			assert(lockHold.get(e.getThread()).get(e.getLock()) > 0);
+            lockHold.get(e.getThread()).put(e.getLock(), lockHold.get(e.getThread()).get(e.getLock()) - 1);
+            if(lockHold.get(e.getThread()).get(e.getLock()) == 0) {
+                lockHold.get(e.getThread()).remove(e.getLock());
+            }
+		}
         return matched;
     }
 
@@ -115,6 +132,9 @@ public class State {
 	}
 
     private void ignore(PrefixEvent e, DependentInfo dep) {
+        if(!dep.threads.contains(e.getThread())) {
+            dep.openLocks.addAll(lockHold.get(e.getThread()).keySet());
+        }
         dep.threads.add(e.getThread());
         if(e.getType().isWrite()) {
             dep.wtVars.add(e.getVariable());

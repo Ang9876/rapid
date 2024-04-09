@@ -8,11 +8,11 @@ public class Prefix {
 		CmdOptions options = new GetOptions(args).parse();
 		String patternFile = options.excludeList;
 		VectorClockEngine engine = new VectorClockEngine(options.parserType, options.path, patternFile);
-		System.out.println("Full trace:");
+		System.out.println("Mazurkiewicz trace:");
 		engine.analyzeTrace();
 
 		PrefixEngine prefixEngine = new PrefixEngine(options.parserType, options.path, patternFile, options.prob);
-		System.out.println("Prefix trace:");
+		System.out.println("Strong Reads-from Prefix:");
 		prefixEngine.analyzeTrace();
 	}
 }

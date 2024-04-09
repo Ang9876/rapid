@@ -182,6 +182,7 @@ public abstract class PatternGenerator {
     private void writeToFile(int i) {
         try {
             File myObj = new File(patternFile + i);
+            System.out.println(patternFile + i);
             myObj.createNewFile();
             FileWriter myWriter = new FileWriter(patternFile + i);
             for(String loc: patterns.get(i)) {

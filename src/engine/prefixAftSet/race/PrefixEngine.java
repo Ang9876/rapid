@@ -1,9 +1,11 @@
 package engine.prefixAftSet.race;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.HashSet;
+import java.util.Scanner;
 
 import engine.Engine;
 import event.Thread;
@@ -33,14 +35,16 @@ public class PrefixEngine extends Engine<PrefixEvent> {
         handlerEvent = new PrefixEvent();
         eventCount = 0;
         long lifetime = 10000;
-        if(trace_folder.contains("lusearch")) {
-            lifetime = 0;
-        }
-        if(trace_folder.contains("xalan")) {
-            lifetime = 100;
-        }
-        if(trace_folder.contains("derby") || trace_folder.contains("cryptorsa") || trace_folder.contains("tsp") || trace_folder.contains("ftpserver")) {
-            lifetime = 5000;
+		try {
+            Scanner myReader = new Scanner(new File(trace_folder.replace("std", "ssp")));
+            while (myReader.hasNextLine()) {
+				String str = myReader.nextLine();
+				if(str.contains("lifetime")) {
+					lifetime = Long.parseLong(str.substring(11, str.length()));
+				}
+            }
+            myReader.close();
+        } catch (FileNotFoundException e) {
         }
         state = new State(threadSet.size(), lifetime);
     }
@@ -77,8 +81,6 @@ public class PrefixEngine extends Engine<PrefixEvent> {
     }
 
     private void analyzeTraceSTD() {
-        startTimeAnalysis = System.currentTimeMillis();
-        long stopTimeAnalysis = 0;
         while(stdParser.hasNext()){
             eventCount = eventCount + 1;
             stdParser.getNextEvent(handlerEvent);
@@ -96,10 +98,7 @@ public class PrefixEngine extends Engine<PrefixEvent> {
             // state.printMemory();
             postHandleEvent(handlerEvent);
         }
-        stopTimeAnalysis = System.currentTimeMillis();
-        long timeAnalysis = stopTimeAnalysis - startTimeAnalysis;
-        System.out.println("Number of racy events = " + racyevents.size());
-        System.out.println("Time for full analysis = " + timeAnalysis + " milliseconds");
+        System.out.println("Number of 'racy' events found = " + racyevents.size());
     }
 
     protected void initializeReaderRV(String trace_folder) {
