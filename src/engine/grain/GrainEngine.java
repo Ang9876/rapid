@@ -2,6 +2,7 @@ package engine.grain;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
@@ -23,6 +24,7 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
 
     protected long startTimeAnalysis = 0;
     protected long e1Index, e2Index;
+    String trace_folder;
 
     public GrainEngine(ParserType pType, String trace_folder, String eventsFileName) {
         super(pType);
@@ -41,6 +43,7 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
         eventCount = 0;
         totalSkippedEvents = 0;
         handlerEvent = new GrainEvent();
+        this.trace_folder = trace_folder;
         initializeReader(trace_folder);
     }
 
@@ -55,16 +58,25 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
         boolean flag = false;
         eventCount = 0;
         long sizeAcc = 0;
+        FileWriter fw;
+        // try{
+        //      fw = new FileWriter(trace_folder.replace("std", "out"), true);
+        //      fw.append(e1Index + " " + e2Index);
+        
+        
         while(stdParser.hasNext()){
 			eventCount = eventCount + 1;
             handlerEvent.eventCount = eventCount;
             if(eventCount == e1Index) {
+                // System.out.println("find");
                 handlerEvent.isE1 = true;
             }
             else {
+                
                 handlerEvent.isE1 = false;
             }
             if(eventCount == e2Index) {
+                // System.out.println("find");
                 handlerEvent.isE2 = true;
             }
             else {
@@ -73,11 +85,11 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
 			stdParser.getNextEvent(handlerEvent);
             boolean matched = handlerEvent.Handle(state);
             sizeAcc += state.size();
-            if(eventCount % 500 == 0) {
-                System.out.println(sizeAcc / 500);
-                sizeAcc = 0;
-            }
-            // state.printMemory();
+            // if(eventCount % 500 == 0) {
+            //     System.out.println(sizeAcc / 500);
+            //     sizeAcc = 0;
+            // }
+            state.printMemory();
             if (matched) {
                 flag = true;
                 break;
@@ -85,12 +97,20 @@ public class GrainEngine<S extends GrainState> extends Engine<GrainEvent> {
             postHandleEvent(handlerEvent);
         }
         if(flag || state.finalCheck()) {
-            System.out.println("YES");
+            System.out.print("YES");
         }
         else {
-            System.out.println("NO");
+            System.out.print("NO");
         }
-        state.printMemory();
+        //     if(flag || state.finalCheck()) {
+        //         fw.append("YES\n");
+        //     }
+        //     else {
+        //         fw.append("NO\n");
+        //     }
+        //     fw.close();
+        // } catch (Exception e) {}
+        // state.printMemory();
     }
 
     protected void analyzeTraceRR() {}

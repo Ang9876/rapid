@@ -1,4 +1,4 @@
-package engine.grain.grainSim.grainSimV1VarMinimal;
+package engine.grain.grainSim.grainSimV1VarContract1;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -29,13 +29,14 @@ public class GrainSimState extends GrainState {
         TreeSet<NondetState> newStates = new TreeSet<>(new StateComparator());
         Iterator<NondetState> iter = nondetStates.iterator();
         while(iter.hasNext()){
+            
             // boolean longGrain = false;
             NondetState state = iter.next();
             // Every grain containing e2 must start from e2
             if(e.isE2 && !state.currentGrain.threads.isEmpty()) {
                 continue;
             }
-
+            // System.out.println(state.hashString);
             // update current grain
             state.currentGrain.threads.add(e.getThread());
             if(e.getType().isExtremeType()) {
@@ -71,9 +72,19 @@ public class GrainSimState extends GrainState {
                     state.currentGrain.incompleteLocks.add(e.getLock());
                 }
             }
+           
+            // System.out.println(state.currentGrain.isDependentWith(state.aftSet));
+            if(!e.isE1 && !witnessE2 && !state.isLastGrainE1) {
+                if( (!state.currentGrain.isDependentWith(state.aftSet) && !state.isLastGrainDependent) ||
+                (state.currentGrain.isDependentWith(state.aftSet) && state.isLastGrainDependent)) {
+                    state.hashString = state.toString();
+                    newStates.add(state);
+                    continue;
+                }
+            }
             
-            boolean minimal = state.currentGrain.incompleteWtVars.isEmpty() && state.currentGrain.incompleteLocks.isEmpty();
-            // Do not stop current grain here
+
+            // Stop current grain here
             // If before e1, do not add current grain into checking.
             if(!witnessE1) {
                 state.hashString = state.toString();
@@ -81,7 +92,6 @@ public class GrainSimState extends GrainState {
                 continue;
             }
 
-            // Stop current grain here
             if(witnessE2){
                 if(state.currentGrain.isDependentWith(state.aftSetNoE1)) {
                     // if current grain contains e2 and it is dependent with a grain other than the grain containing e1, then ignore it.
@@ -94,18 +104,22 @@ public class GrainSimState extends GrainState {
                     return true;
                 }
             }
-
+            
             // Make a copy of the state but with a new empty current grain
             NondetState newState = new NondetState(state);
             if(state.aftSet.threads.isEmpty() || state.currentGrain.isDependentWith(state.aftSet)) {
                 newState.aftSet.updateGrain(state.currentGrain);
+                newState.isLastGrainDependent = true;
                 if(!e.isE1) {
                     newState.aftSetNoE1.updateGrain(state.currentGrain);
+                }
+                else {
+                    newState.isLastGrainE1 = true;
                 }
             }
             newState.hashString = newState.toString();
             newStates.add(newState);
-            if(!e.isE1 && !minimal) {
+            if(!e.isE1) {
                 state.hashString = state.toString();
                 newStates.add(state);
             }
@@ -137,26 +151,33 @@ public class GrainSimState extends GrainState {
 class NondetState {
     // current grain
     public Grain currentGrain;
+    // public Grain lastGrain;
+    boolean isLastGrainDependent;
+    boolean isLastGrainE1;
     public Grain aftSet;
     public Grain aftSetNoE1;
     public String hashString;
 
     public NondetState() {
         currentGrain = new Grain();
+        isLastGrainDependent = false;
+        isLastGrainE1 = false;
         aftSet = new Grain();
-        aftSetNoE1 = new Grain(); 
+        aftSetNoE1 = new Grain();
         hashString = this.toString();
     }
 
     public NondetState(NondetState state) {
         currentGrain = new Grain();
+        isLastGrainDependent = false;
+        isLastGrainE1 = false;
         aftSet = new Grain(state.aftSet);
         aftSetNoE1 = new Grain(state.aftSetNoE1);
         hashString = this.toString();
     }
 
     public String toString() {
-        return currentGrain.toString() + aftSet.toString() + aftSetNoE1.toString();
+        return currentGrain.toString() + isLastGrainDependent + isLastGrainE1 + aftSet.toString() + aftSetNoE1.toString();
     }
 }
 

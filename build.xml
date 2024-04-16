@@ -133,9 +133,31 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="tests/tests5/trace.std" />
+            <arg value="tests/tests5/lusearch.std" />
             <arg value="-m" />
             <arg value="tests/tests5/events" />
+            <classpath refid="rapid.classpath" />
+        </java>
+    </target>
+    <target name="grain1" depends="build">
+        <java classname="GrainSim" fork="true">
+            <arg value="-f" />
+            <arg value="std" />
+            <arg value="-p" />
+            <arg value="tests/tests3/trace.std" />
+            <arg value="-m" />
+            <arg value="tests/tests3/events" />
+            <classpath refid="rapid.classpath" />
+        </java>
+    </target>
+    <target name="shb" depends="build">
+        <java classname="SHB" fork="true">
+            <arg value="-f" />
+            <arg value="std" />
+            <arg value="-p" />
+            <arg value="tests/tests5/lufact.std" />
+            <arg value="-verbosity" />
+            <arg value="1" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>
