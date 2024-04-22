@@ -155,7 +155,7 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="tests/tests5/lufact.std" />
+            <arg value="Benchmarks/STD-Format/ftpserver.std" />
             <arg value="-verbosity" />
             <arg value="1" />
             <classpath refid="rapid.classpath" />

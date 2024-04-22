@@ -11,11 +11,18 @@ public class GrainEvent extends Event {
     public boolean Handle(GrainState state) {
         if(isE1) {
             state.witnessE1 = true;
-        }
+        } 
         if(isE2) {
             state.witnessE2 = true;
         }
-        return state.update(this);
+        boolean res = state.update(this);
+        if(state.afterE1) {
+            state.afterE1 = false;
+        }
+        if(isE1) {
+            state.afterE1 = true;
+        }
+        return res;
     } 
 }
 

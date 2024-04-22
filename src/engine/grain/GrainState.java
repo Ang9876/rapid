@@ -13,6 +13,7 @@ public abstract class GrainState extends State {
 
     public boolean witnessE1;
     public boolean witnessE2;
+    public boolean afterE1;
 
     public abstract boolean update(GrainEvent e);
     

@@ -2,11 +2,13 @@ import re
 import os
 
 path = "tests/tests5"
-traceFile = "lufact.std"
+
+
+traceFile = "ftpserver.std"
 
 def parse(event):
     (thread, op, _) = event.split("|")
-    thread = int(thread[1:])
+    thread = int(thread[1:] if "T" in thread else thread)
     x = re.match(r'(.*)\((.*)\)', op)
     op = x.group(1)
     var = x.group(2)
