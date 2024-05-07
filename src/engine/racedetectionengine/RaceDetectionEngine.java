@@ -24,6 +24,8 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 
 	protected boolean enablePrintStatus;
 
+	HashSet<Long> racyEvents = new HashSet<>();
+
 	public RaceDetectionEngine(ParserType pType) {
 		super(pType);
 		enablePrintStatus = true;
@@ -74,10 +76,11 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 			// raceCount ++;
 
 			if (verbosity >= 1) {
-				System.out.println("Race detected at event " + eventCount + " : "
-						+ handlerEvent.toStandardFormat());
+				// System.out.println("Race detected at event " + eventCount + " : "
+						// + handlerEvent.toStandardFormat());
+				racyEvents.add(eventCount);
 			} else {
-				System.out.println(handlerEvent.getLocId());
+				// System.out.println(handlerEvent.getLocId());
 			}
 			this.locIdsOfRacyEvents.add(handlerEvent.getLocId());
 		}
@@ -89,6 +92,7 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 		raceCount = (long) 0;
 		locIdsOfRacyEvents = new HashSet<Integer>();
 		totalSkippedEvents = (long) 0;
+		long startTimeAnalysis = System.currentTimeMillis();
 		if (this.parserType.isRV()) {
 			analyzeTraceRV(multipleRace, verbosity);
 		} else if (this.parserType.isCSV()) {
@@ -98,6 +102,9 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 		} else if (this.parserType.isRR()) {
 			analyzeTraceRR(multipleRace, verbosity);
 		}
+		long stopTimeAnalysis = System.currentTimeMillis(); // System.nanoTime();
+		long timeAnalysis = stopTimeAnalysis - startTimeAnalysis;
+		System.out.println("Time for analysis = " + timeAnalysis + " milliseconds");
 		printCompletionStatus();
 		postAnalysis();
 	}
@@ -149,6 +156,7 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 	public void analyzeTraceSTD(boolean multipleRace, int verbosity) {
 		while (stdParser.hasNext()) {
 			eventCount = eventCount + 1;
+			// System.out.println(eventCount);
 			stdParser.getNextEvent(handlerEvent);
 
 			if (skipEvent(handlerEvent)) {
@@ -188,11 +196,13 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 	@Override
 	protected void printCompletionStatus() {
 		if (enablePrintStatus) {
-			System.out.println("Analysis complete");
-			System.out.println(
-					"Number of 'racy' events found = " + Long.toString(raceCount));
-			System.out.println(
-					"Number of 'racy' lines found = " + this.locIdsOfRacyEvents.size());
+			// System.out.println("Analysis complete");
+			// System.out.println(
+			// 		"Number of 'racy' events found = " + Long.toString(raceCount));
+			// System.out.println(
+			// 		"Number of 'racy' lines found = " + this.locIdsOfRacyEvents.size());
+			if(!racyEvents.isEmpty())
+				System.out.println(racyEvents.stream().sorted().toList());
 		}
 	}
 

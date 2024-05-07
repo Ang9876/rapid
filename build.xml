@@ -155,9 +155,26 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="Benchmarks/STD-Format/ftpserver.std" />
+            <arg value="Benchmarks/STD-Format/bubblesort.std" />
             <arg value="-verbosity" />
             <arg value="1" />
+            <classpath refid="rapid.classpath" />
+        </java>
+    </target>
+    <target name="grainrace" depends="build">
+        <java classname="GrainRace" fork="true">
+            <arg value="-f" />
+            <arg value="std" />
+            <arg value="-p" />
+            <arg value="benchmark/T2/raytracer_filter.std" />
+            <!-- <arg value="Benchmarks/STD-Format/twostage.std" />  -->
+            <classpath refid="rapid.classpath" />
+        </java>
+    </target>
+    <target name="filter" depends="build">
+        <java classname="FilterTrace" fork="true">
+            <arg value="benchmark/T2/raytracer.rr" />
+            <arg value="benchmark/T2/raytracer_filter.rr" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>
@@ -177,9 +194,9 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="benchmark/STD-Format/bufwriter.std" />
-            <arg value="-prob" />
-            <arg value="100000000" />
+            <arg value="Benchmarks/STD-Format/test.std" />
+            <arg value="--verbosity" />
+            <arg value="1" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>
