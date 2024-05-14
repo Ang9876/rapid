@@ -166,15 +166,15 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="benchmark/T2/raytracer_filter.std" />
+            <arg value="benchmark/T2/sor_filter.std" />
             <!-- <arg value="Benchmarks/STD-Format/twostage.std" />  -->
             <classpath refid="rapid.classpath" />
         </java>
     </target>
     <target name="filter" depends="build">
         <java classname="FilterTrace" fork="true">
-            <arg value="benchmark/T2/raytracer.rr" />
-            <arg value="benchmark/T2/raytracer_filter.rr" />
+            <arg value="benchmark/T2/raytracer3.rr" />
+            <arg value="benchmark/T2/ray_filter.rr" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>
