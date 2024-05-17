@@ -167,7 +167,7 @@
             <arg value="std" />
             <arg value="-p" />
             <arg value="benchmark/T2/sor_filter.std" />
-            <!-- <arg value="Benchmarks/STD-Format/twostage.std" />  -->
+            <!-- <arg value="Benchmarks/STD-Format/bubblesort.std" />  -->
             <classpath refid="rapid.classpath" />
         </java>
     </target>

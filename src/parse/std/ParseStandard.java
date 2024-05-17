@@ -73,6 +73,14 @@ public class ParseStandard {
 		return this.threadMap;
 	}
 
+	public HashMap<String, Variable> getVariableMap() {
+		return this.variableMap;
+	}
+
+	public HashMap<String, Lock> getLockMap() {
+		return this.lockMap;
+	}
+
 	public void eInfo2Event(Event e) {
 		String tname = eInfo.thread;
 		if (!(threadMap.containsKey(tname))) {

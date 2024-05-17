@@ -1,4 +1,4 @@
-package engine.racedetectionengine.grainRace;
+package engine.racedetectionengine.grainRaceMaz;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -151,6 +151,8 @@ class NondetState {
     public Grain aftSetNoE1;
     public boolean candidate;
     public boolean lastDependent;
+    public Frontier firstFrontier;
+    public Frontier currentFrontier;
     public String hashString;
 
     public NondetState() {
@@ -162,6 +164,8 @@ class NondetState {
         aftSet = new Grain();
         aftSetNoE1 = new Grain();
         lastDependent = false;
+        firstFrontier = new Frontier();
+        currentFrontier = new Frontier();
         hashString = this.toString();
     }
 
@@ -174,6 +178,8 @@ class NondetState {
         currentGrain = copy ? new Grain(state.currentGrain) : new Grain();
         aftSet = new Grain(state.aftSet);
         aftSetNoE1 = new Grain(state.aftSetNoE1);
+        firstFrontier = new Frontier(state.firstFrontier);
+        currentFrontier = copy ? new Frontier(state.currentFrontier) : new Frontier();
         hashString = this.toString();
     }
 
@@ -332,6 +338,73 @@ class Grain {
     public String toString() {
         return  setToString(threads) + setToString(completeVars) + setToString(incompleteWtVars) + setToString(incompleteRdVars) + setToString(completeLocks) + setToString(incompleteAcqs) + setToString(incompleteRels); 
     } 
+}
+
+class Frontier {
+    public HashSet<Thread> threads;
+    public HashSet<Variable> rdVars;
+    public HashSet<Variable> wtVars;
+    public HashSet<Lock> locks;
+
+    public Frontier() {
+        threads = new HashSet<>();
+        rdVars = new HashSet<>();
+        wtVars = new HashSet<>();
+        locks = new HashSet<>();
+    }
+
+    public Frontier(Frontier other) {
+        threads = new HashSet<>(other.threads);
+        rdVars = new HashSet<>(other.rdVars);
+        wtVars = new HashSet<>(other.wtVars);
+        locks = new HashSet<>(other.locks);
+    }
+
+    public boolean isDependentWith(GrainRaceEvent e) {
+        if(threads.contains(e.getThread())) {
+            return true;
+        }
+        if(e.getType().isExtremeType() && threads.contains(e.getTarget())) {
+            return true;
+        }
+        if(e.getType().isRead() && wtVars.contains(e.getVariable())) {
+            return true;
+        }
+        if(e.getType().isWrite() && (wtVars.contains(e.getVariable()) || rdVars.contains(e.getVariable()))) {
+            return true;
+        }
+        if(e.getType().isLockType() && locks.contains(e.getLock())) {
+            return true;
+        }
+        return false;
+    }
+
+    public void update(GrainRaceEvent e) {
+        threads.add(e.getThread());
+        if(e.getType().isExtremeType()) {
+            threads.add(e.getTarget());
+        }
+        if(e.getType().isRead()) {
+            rdVars.add(e.getVariable());
+        }
+        if(e.getType().isWrite()) {
+            wtVars.add(e.getVariable());
+        }
+        if(e.getType().isLockType()) {
+            locks.add(e.getLock());
+        }
+    }
+
+    private <T> String setToString(HashSet<T> set) {
+        if(set == null) {
+            return "null";
+        }
+        return set.stream().map(x -> x.toString()).sorted().toList().toString();
+    }
+
+    public String toString() {
+        return setToString(threads) + setToString(rdVars) + setToString(wtVars) + setToString(locks);
+    }
 }
 
 class StateComparator implements Comparator<NondetState> {
