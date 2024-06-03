@@ -16,6 +16,10 @@ public class GrainRaceEvent extends RaceDetectionEvent<GrainRaceState> {
         return state.update(this);
     }
 
+    public String getName() {
+        return this.getVariable().getName() + ";" + (this.getType().isWrite() ? "W" : "R") + ";" + this.getThread().getName();
+    }
+
     @Override
     public void printRaceInfoLockType(GrainRaceState state, int verbosity) {}
 

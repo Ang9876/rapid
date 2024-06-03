@@ -154,15 +154,22 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 	}
 
 	public void analyzeTraceSTD(boolean multipleRace, int verbosity) {
+		long sizeOfStates = 0;
 		while (stdParser.hasNext()) {
 			eventCount = eventCount + 1;
-			// System.out.println(eventCount);
+			
 			stdParser.getNextEvent(handlerEvent);
 
 			if (skipEvent(handlerEvent)) {
 				totalSkippedEvents = totalSkippedEvents + 1;
 			} else {
 				boolean raceDetected = analyzeEvent(handlerEvent, verbosity, eventCount);
+				// System.out.println(eventCount + " " + state.size());
+				sizeOfStates += state.size();
+				if(eventCount % 100 == 0) {
+					System.out.println(sizeOfStates / 100);
+					sizeOfStates = 0;
+				}
 				if (raceDetected) {
 					raceCount++;
 					if (!multipleRace) {

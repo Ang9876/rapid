@@ -33,7 +33,9 @@ public class ParseStandard {
 		variableMap = new HashMap<String, Variable>();
 		totThreads = 0;
 		totEvents = 0;
-
+		Thread.threadCountTracker = 0;
+		Variable.variableCountTracker = 0;
+		Lock.lockCountTracker = 0;
 		bufferedReader = null;
 		try{
 			bufferedReader = new BufferedReader(new FileReader(traceFile));

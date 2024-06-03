@@ -26,11 +26,10 @@ public class FilterTrace {
     public static void filter(String traceDir, String saveLocation) throws Exception{
         OrderedVarsEngine engine = findOrderdVars(traceDir);
         HashMap<String, HashSet<String>> varToThreadSet = engine.getVariableToThreadSet();
+        HashSet<String> orderedVars = engine.getOrdredVars();
         // System.out.println(orderdVars);
         HashMap<String, HashSet<String>> lockToThreadSet = engine.getLockToThreadSet();
-        if(varToThreadSet.containsKey("@08[27]")) {
-            System.out.println(varToThreadSet.get("@08[27]"));
-        }
+
         ParseRoadRunner rrParser = new ParseRoadRunner(traceDir, true);
         Event e = new Event();
         File wFile = new File(saveLocation);
@@ -43,7 +42,9 @@ public class FilterTrace {
                     if(varToThreadSet.containsKey(var) && varToThreadSet.get(var).size() == 1){
                         flag = false;
                     }
-        
+                    // if(orderedVars.contains(var)) {
+                    //     flag = false;
+                    // }
                     if(lockToThreadSet.containsKey(var) && lockToThreadSet.get(var).size() == 1){
                         flag = false;
                     }

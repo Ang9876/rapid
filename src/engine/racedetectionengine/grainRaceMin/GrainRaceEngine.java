@@ -22,9 +22,21 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
             System.out.println("Unable to open file '" + trace_folder + "'");
         }
         this.state = new GrainRaceState(threadSet, varAnnotationEngine.getLastReads());
+        // for(String t: stdParser.getThreadMap().keySet()) {
+        //     System.out.println(t + " " + stdParser.getThreadMap().get(t).getId());
+        // }
+        // for(String t: stdParser.getVariableMap().keySet()) {
+        //     System.out.println(t + " " + stdParser.getVariableMap().get(t).getId());
+        // }
+        // for(String t: stdParser.getLockMap().keySet()) {
+        //     System.out.println(t + " " + stdParser.getLockMap().get(t).getId());
+        // }
         GrainRaceState.numOfThreads = stdParser.getThreadMap().size();
         GrainRaceState.numOfVars = stdParser.getVariableMap().size();
         GrainRaceState.numOfLocks = stdParser.getLockMap().size();
+        System.out.println("Num of Threads: " + GrainRaceState.numOfThreads);
+        System.out.println("Num of Vars: " + GrainRaceState.numOfVars);
+        System.out.println("Num of Locks: " + GrainRaceState.numOfLocks);
         this.handlerEvent = new GrainRaceEvent();
     }
 
@@ -42,5 +54,6 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
     protected void postAnalysis() {
         state.finalCheck();
         System.out.println(state.racyEvents.stream().sorted().toList());
+        System.out.println(state.racyEvents.size());
     }
 }
