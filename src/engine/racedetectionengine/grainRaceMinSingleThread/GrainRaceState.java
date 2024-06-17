@@ -1,4 +1,4 @@
-package engine.racedetectionengine.grainRaceMin;
+package engine.racedetectionengine.grainRaceMinSingleThread;
 
 import java.util.BitSet;
 import java.util.Comparator;
@@ -34,7 +34,7 @@ public class GrainRaceState extends State {
         //     System.out.println(state.hashString);
         // } 
         boolean findRace = false;
-        boolean singleThread = false;
+        boolean singleThread = true;
         TreeMap<NondetState, HashMap<String, Candidate>> newStates = new TreeMap<>(new StateComparator());
         for(NondetState state: nondetStates.keySet()){
             HashMap<String, Candidate> candidates = nondetStates.get(state);

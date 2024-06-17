@@ -167,7 +167,7 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 				// System.out.println(eventCount + " " + state.size());
 				sizeOfStates += state.size();
 				if(eventCount % 100 == 0) {
-					System.out.println(sizeOfStates / 100);
+					// System.out.println(sizeOfStates / 100);
 					sizeOfStates = 0;
 				}
 				if (raceDetected) {

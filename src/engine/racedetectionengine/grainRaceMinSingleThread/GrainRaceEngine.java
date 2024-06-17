@@ -1,4 +1,4 @@
-package engine.racedetectionengine.grainRaceMin;
+package engine.racedetectionengine.grainRaceMinSingleThread;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;

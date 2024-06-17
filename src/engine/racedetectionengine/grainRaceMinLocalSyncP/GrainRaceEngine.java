@@ -1,4 +1,4 @@
-package engine.racedetectionengine.grainRaceMin;
+package engine.racedetectionengine.grainRaceMinLocalSyncP;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
