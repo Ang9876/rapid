@@ -7,10 +7,10 @@ import engine.racedetectionengine.syncpreserving.SyncPreservingRaceOfflineEngine
 public class GrainRaceMinBoundedSize {
     public static void main(String[] args) {
         CmdOptions options = new GetOptions(args).parse();
-        SHBEngine engine1 = new SHBEngine(options.parserType, options.path);
-		engine1.analyzeTrace(options.multipleRace, 1);
-        SyncPreservingRaceOfflineEngine engine2 = new SyncPreservingRaceOfflineEngine(options.parserType, options.path);
-        engine2.analyzeTrace(true, 1);
+        // SHBEngine engine1 = new SHBEngine(options.parserType, options.path);
+		// engine1.analyzeTrace(options.multipleRace, 1);
+        // SyncPreservingRaceOfflineEngine engine2 = new SyncPreservingRaceOfflineEngine(options.parserType, options.path);
+        // engine2.analyzeTrace(true, 1);
         // engine.racedetectionengine.grainRaceMin.GrainRaceEngine engine3 = new engine.racedetectionengine.grainRaceMin.GrainRaceEngine(options.parserType, options.path);
         // engine3.analyzeTrace(true, 0);
         // engine.racedetectionengine.grainRaceMinLocalSHB.GrainRaceEngine engine4 = new engine.racedetectionengine.grainRaceMinLocalSHB.GrainRaceEngine(options.parserType, options.path);

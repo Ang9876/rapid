@@ -162,22 +162,22 @@
         </java>
     </target>
     <target name="grainrace" depends="build">
-        <java classname="GrainRaceMinLocalMaz" fork="true">
+        <java classname="GrainRaceMinSingleThread" fork="true">
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
             <!-- <arg value="benchmark/T2/series_filter_short.std" /> -->
-            <arg value="Benchmarks/STD-Format/wronglock.std" /> 
+            <arg value="Benchmarks/STD-Format/sunflow.std" /> 
             <classpath refid="rapid.classpath" />
         </java>
     </target>
     <target name="grainInfo" depends="build">
-        <java classname="GrainRaceInfo" fork="true">
+        <java classname="GrainRaceMinInfo" fork="true">
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
             <!-- <arg value="benchmark/T2/series_filter_short.std" /> -->
-            <arg value="Benchmarks/STD-Format/bubblesort.std" /> 
+            <arg value="Benchmarks/STD-Format/raytracer.std" /> 
             <classpath refid="rapid.classpath" />
         </java>
     </target>
