@@ -32,7 +32,7 @@ public class GrainRaceState extends State {
         threadSet = tSet;
         nondetStates = new TreeMap<>(new StateComparator());
         NondetState initState = new NondetState();
-        nondetStates.put(initState, new Candidate());    
+        nondetStates.put(initState, new Candidate(0, 0));    
         this.lastReads = lastReads;
         this.singleThread = singleThread;
         this.boundedSize = boundedSize;
@@ -49,7 +49,11 @@ public class GrainRaceState extends State {
             boolean isCandidate =  e.getType().isAccessType() && isConflict(state, e);
             boolean minimal = state.currentGrain.incompleteWtVarsBitSet.isEmpty() && state.currentGrain.incompleteAcqsBitSet.isEmpty();
             boolean singleThread = !this.singleThread || state.currentGrain.threadsBitSet.get(e.getThread().getId());
-            boolean boundedSize = !this.boundedSize || state.size <= size;
+            boolean boundedSize = !this.boundedSize || candidates.size <= size;
+            boolean tooOld = candidates.lifetime > 5000;
+            if(tooOld) {
+                continue;
+            }
 
             if(!state.aftSet.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()){
                 racyEvents.addAll(candidates.e2Sets);
@@ -79,9 +83,9 @@ public class GrainRaceState extends State {
         }
         NondetState newState = new NondetState();
         newState.currentGrain.updateGrain(e, lastReads, e.eventCount);
-        if(this.boundedSize) {
-            newState.size += 1;
-        }
+        // if(this.boundedSize) {
+        //     newState.size += 1;
+        // }
         newState.currentGrain.isSingleton = true;
         if(e.getType().isWrite()) {
             newState.currentGrain.firstWrite = e.getVariable().getId();
@@ -92,8 +96,11 @@ public class GrainRaceState extends State {
         newState.hashString = newState.toString();
         if(addToStates(newStates, newState)) {
             if(!newStates.containsKey(newState)) {
-                newStates.put(newState, new Candidate());
+                newStates.put(newState, new Candidate(1, 1));
             }
+            Candidate cands = newStates.get(newState);
+            cands.size = 1;
+            cands.lifetime = 1; 
         }
         
         if(e.getType().isAccessType()) {
@@ -105,8 +112,11 @@ public class GrainRaceState extends State {
             newState2.hashString = newState2.toString();
             if(addToStates(newStates, newState2)) {
                 if(!newStates.containsKey(newState2)) {
-                    newStates.put(newState2, new Candidate());
+                    newStates.put(newState2, new Candidate(1, 1));
                 }
+                Candidate cands = newStates.get(newState2);
+                cands.size = 1;
+                cands.lifetime = 1;
             }
         }
 
@@ -123,6 +133,9 @@ public class GrainRaceState extends State {
     }
 
     private boolean addToStates(TreeMap<NondetState, Candidate> states, NondetState newState) {
+        if(states.containsKey(newState)) {
+            return true;
+        }
         TreeSet<NondetState> subsumedStates = new TreeSet<>(new StateComparator());
         boolean add = true;
         for(NondetState state: states.keySet()) {
@@ -147,9 +160,9 @@ public class GrainRaceState extends State {
     private void extendCurrentGrain(NondetState state, GrainRaceEvent e, TreeMap<NondetState, Candidate> states, Candidate candidates, boolean edgeContraction, boolean isCandidate) {
         boolean isFirstGrain = state.firstGrain.isEmpty;
         NondetState newState = new NondetState(state, true, false);
-        if(this.boundedSize) {
-            newState.size += 1;
-        }
+        // if(this.boundedSize) {
+        //     newState.size += 1;
+        // }
         newState.currentGrain.isSingleton = false || edgeContraction;
         if(newState.currentGrain.firstWrite != -1) {
             if(e.getType().isRead() && e.getVariable().getId() == newState.currentGrain.firstWrite && lastReads.get(e.getVariable()).contains(e.eventCount)) {
@@ -212,13 +225,15 @@ public class GrainRaceState extends State {
 
         // System.out.println("AddCon " + newState);
         // System.out.println(states);
+        newState.hashString = newState.toString();
         if(addToStates(states, newState)) {
-            newState.hashString = newState.toString();
             // System.out.println("Add" + newState);
             if(!states.containsKey(newState)) {
-                states.put(newState, new Candidate());
+                states.put(newState, new Candidate(candidates.size + 1, candidates.lifetime + 1));
             }
             Candidate cands = states.get(newState);
+            cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+            cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             cands.e2Sets.addAll(candidates.e2Sets);
             if(addToCand) {
                 cands.e2Sets.add(e.eventCount);
@@ -235,8 +250,11 @@ public class GrainRaceState extends State {
             // System.out.println("AddCon " + newState2);
             if(addToStates(states, newState2)) {
                 if(!states.containsKey(newState2)) {
-                    states.put(newState2, new Candidate());
+                    states.put(newState2, new Candidate(candidates.size + 1, candidates.lifetime + 1));
                 }
+                Candidate cands = states.get(newState2);
+                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             }
         }
         // System.out.println(states);
@@ -251,9 +269,9 @@ public class GrainRaceState extends State {
         if(!isFirstGrain && (state.firstGrain.isDependentWith(state.currentGrain) || state.aftSet.isDependentWith(state.currentGrain))) {
             newState.aftSet.updateGrain(state.currentGrain);
         }
-        if(this.boundedSize) {
-            newState.size += 1;
-        }
+        // if(this.boundedSize) {
+        //     newState.size += 1;
+        // }
         newState.currentGrain.isSingleton = true;
         if(e.getType().isWrite()) {
             newState.currentGrain.firstWrite = e.getVariable().getId();
@@ -278,12 +296,13 @@ public class GrainRaceState extends State {
             newState.currentFrontier.removeWt(e.getVariable().getId());
         }
 
+        newState.hashString = newState.toString();
         if(addToStates(states, newState)) {
-            newState.hashString = newState.toString();
             if(!states.containsKey(newState)) {
-                states.put(newState, new Candidate());
+                states.put(newState, new Candidate(1, candidates.lifetime + 1));
             }
             Candidate cands = states.get(newState);
+            cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             if(addToCand) {
                 cands.e2Sets.add(e.eventCount);
             }
@@ -325,7 +344,7 @@ class NondetState {
     public boolean e1LastWrite;
     public SHBFrontier firstFrontier;
     public SHBFrontier currentFrontier;
-    public int size;
+    
     public String hashString;
 
     public NondetState() {
@@ -338,7 +357,7 @@ class NondetState {
         e1LastWrite = false;
         firstFrontier = new SHBFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
         currentFrontier = new SHBFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
-        size = 0;
+        // size = 0;
         hashString = this.toString();
     }
 
@@ -352,12 +371,12 @@ class NondetState {
         e1LastWrite = state.e1LastWrite;
         firstFrontier = new SHBFrontier(state.firstFrontier);
         currentFrontier = copy ? new SHBFrontier(state.currentFrontier) : new SHBFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
-        size = copy ? state.size : 0;
+        // size = copy ? state.size : 0;
         hashString = this.toString();
     }
 
     public boolean subsume(NondetState other) {
-        return !this.firstGrain.isEmpty && this.e1Thread == other.e1Thread && this.e1Var == other.e1Var && (this.e1Write || !other.e1Write) && (!this.e1LastWrite || other.e1LastWrite) && this.firstGrain.subsume(other.firstGrain) && this.currentGrain.subsume(other.currentGrain) && this.aftSet.subsume(other.aftSet) && this.firstFrontier.subsume(other.firstFrontier) && this.currentFrontier.subsume(other.currentFrontier) && this.size <= other.size;
+        return !this.firstGrain.isEmpty && this.e1Thread == other.e1Thread && this.e1Var == other.e1Var && (this.e1Write || !other.e1Write) && (!this.e1LastWrite || other.e1LastWrite) && this.firstGrain.subsume(other.firstGrain) && this.currentGrain.subsume(other.currentGrain) && this.aftSet.subsume(other.aftSet) && this.firstFrontier.subsume(other.firstFrontier) && this.currentFrontier.subsume(other.currentFrontier);// && this.size <= other.size;
     }
 
     public String toString() {
@@ -371,7 +390,7 @@ class NondetState {
         sb.append(e1Var);
         sb.append(e1Write);
         sb.append(e1LastWrite);
-        sb.append(size);
+        // sb.append(size);
         return sb.toString();
     }
 }
@@ -384,13 +403,13 @@ class StateComparator implements Comparator<NondetState> {
 
 class Candidate {
     public HashSet<Long> e2Sets;
+    public int size;
+    public int lifetime;
 
-    public Candidate() {
+    public Candidate(int size, int lifetime) {
         e2Sets = new HashSet<>();
-    }
-
-    public Candidate(Candidate other) {
-        e2Sets = new HashSet<>(other.e2Sets);
+        this.size = size;
+        this.lifetime = lifetime;
     }
 
     public String toString() {
