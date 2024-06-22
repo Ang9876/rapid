@@ -167,7 +167,7 @@
             <arg value="std" />
             <arg value="-p" />
             <!-- <arg value="benchmark/T2/series_filter_short.std" /> -->
-            <arg value="Benchmarks/STD-Format/bubblesort.std" /> 
+            <arg value="Benchmarks/STD-Format/clean.std" /> 
             <classpath refid="rapid.classpath" />
         </java>
     </target>
