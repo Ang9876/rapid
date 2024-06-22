@@ -200,6 +200,10 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 		}
 	}
 
+	public HashSet<Long> getRacyEvents() {
+		return racyEvents;
+	}
+
 	@Override
 	protected void printCompletionStatus() {
 		if (enablePrintStatus) {

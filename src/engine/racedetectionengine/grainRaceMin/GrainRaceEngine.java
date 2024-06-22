@@ -9,7 +9,7 @@ import engine.racedetectionengine.RaceDetectionEngine;
 import parse.ParserType;
 
 public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRaceEvent>{
-    public GrainRaceEngine(ParserType pType, String trace_folder) {
+    public GrainRaceEngine(ParserType pType, String trace_folder, boolean singleThread, boolean boundedSize, int size) {
         super(pType);
         initializeReader(trace_folder);
         VarAnnotationEngine varAnnotationEngine = new VarAnnotationEngine(pType, trace_folder, stdParser);
@@ -21,7 +21,7 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
         catch (FileNotFoundException ex) {
             System.out.println("Unable to open file '" + trace_folder + "'");
         }
-        this.state = new GrainRaceState(threadSet, varAnnotationEngine.getLastReads());
+        this.state = new GrainRaceState(threadSet, varAnnotationEngine.getLastReads(), singleThread, boundedSize, size);
         for(String t: stdParser.getThreadMap().keySet()) {
             System.out.println(t + " " + stdParser.getThreadMap().get(t).getId());
         }
@@ -54,6 +54,6 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
     protected void postAnalysis() {
         state.finalCheck();
         System.out.println(state.racyEvents.stream().sorted().toList());
-        System.out.println(state.racyEvents.size());
+        System.out.println("Number of racy events: " + state.racyEvents.size());
     }
 }

@@ -162,12 +162,12 @@
         </java>
     </target>
     <target name="grainrace" depends="build">
-        <java classname="GrainRaceMinSingleThread" fork="true">
+        <java classname="GrainRaceMinLocalSHB" fork="true">
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
             <!-- <arg value="benchmark/T2/series_filter_short.std" /> -->
-            <arg value="Benchmarks/STD-Format/sunflow.std" /> 
+            <arg value="Benchmarks/STD-Format/bubblesort.std" /> 
             <classpath refid="rapid.classpath" />
         </java>
     </target>
@@ -204,7 +204,7 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="Benchmarks/STD-Format/test.std" />
+            <arg value="Benchmarks/STD-Format/airlinetickets.std" />
             <arg value="--verbosity" />
             <arg value="1" />
             <classpath refid="rapid.classpath" />

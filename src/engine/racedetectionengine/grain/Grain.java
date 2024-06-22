@@ -125,7 +125,17 @@ public class Grain {
         // return this.toString().equals(other.toString());
     }
 
-    public String toString() {
-        return threadsBitSet.toString() + completeVarBitSet.toString() + incompleteWtVarsBitSet.toString() + incompleteRdVarsBitSet.toString() + completeLocksBitSet.toString() + incompleteAcqsBitSet.toString() + incompleteRelsBitSet.toString() + firstWrite + firstLock + isComplete + isSingleton;
+    public void toString(StringBuffer sb) {
+        sb.append(threadsBitSet);
+        sb.append(completeVarBitSet);
+        sb.append(incompleteWtVarsBitSet);
+        sb.append(incompleteRdVarsBitSet);
+        sb.append(completeLocksBitSet);
+        sb.append(incompleteAcqsBitSet);
+        sb.append(incompleteRelsBitSet);
+        sb.append(firstWrite);
+        sb.append(firstLock);
+        sb.append(isComplete);
+        sb.append(isSingleton);
     }  
 }
