@@ -62,14 +62,16 @@ public class Grain {
             }
             else if(lastReads.get(e.getVariable()).contains(eventCount)) {
                 incompleteWtVarsBitSet.clear(e.getVariable().getId());
-                completeVarBitSet.set(e.getVariable().getId());
+                if(!incompleteRdVarsBitSet.get(e.getVariable().getId())) {
+                    completeVarBitSet.set(e.getVariable().getId());
+                }   
             }
         }
         if(e.getType().isWrite()) {
             if(!lastReads.get(e.getVariable()).contains(eventCount)) {
                 incompleteWtVarsBitSet.set(e.getVariable().getId());
             }
-            else {
+            else if(!incompleteRdVarsBitSet.get(e.getVariable().getId())) {
                 completeVarBitSet.set(e.getVariable().getId());
             }
         }

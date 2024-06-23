@@ -58,7 +58,7 @@ public class GrainRaceState extends State {
             if(!state.firstGrain.isEmpty) {
                 boolean singleOrComplete = state.currentGrain.isSingleton || state.currentGrain.isComplete;
                 boolean definiteEdge = state.currentGrain.isDefDependentWith(e) || state.aftSet.isDefDependentWith(e);
-                boolean edgeContraction = state.firstGrain.isDependentWith(state.currentGrain) && definiteEdge;
+                boolean edgeContraction = state.aftSet.isDependentWith(state.currentGrain) && definiteEdge;
                 if(minimal || (singleOrComplete && !edgeContraction)) {
                     cutCurrentGrain(state, e, newStates, candidates, isCandidate);
                 }

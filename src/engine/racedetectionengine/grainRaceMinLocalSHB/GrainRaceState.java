@@ -47,13 +47,19 @@ public class GrainRaceState extends State {
             // System.out.println(state.hashString);
             // System.out.println(candidates);
             boolean isCandidate =  e.getType().isAccessType() && isConflict(state, e);
+            if(state.aftSet.threadsBitSet.nextClearBit(0) >= numOfThreads) {
+                continue;
+            }
+
+            
+
             boolean minimal = state.currentGrain.incompleteWtVarsBitSet.isEmpty() && state.currentGrain.incompleteAcqsBitSet.isEmpty();
             boolean singleThread = !this.singleThread || state.currentGrain.threadsBitSet.get(e.getThread().getId());
             boolean boundedSize = !this.boundedSize || candidates.size <= size;
-            boolean tooOld = candidates.lifetime > 5000;
-            if(tooOld) {
-                continue;
-            }
+            // boolean tooOld = candidates.lifetime > 100;
+            // if(tooOld) {
+            //     continue;
+            // }
 
             if(!state.aftSet.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()){
                 racyEvents.addAll(candidates.e2Sets);
@@ -63,7 +69,9 @@ public class GrainRaceState extends State {
             if(!state.firstGrain.isEmpty) {
                 boolean singleOrComplete = state.currentGrain.isSingleton || state.currentGrain.isComplete;
                 boolean definiteEdge = state.currentGrain.isDefDependentWith(e) || state.aftSet.isDefDependentWith(e);
-                boolean edgeContraction = state.firstGrain.isDependentWith(state.currentGrain) && definiteEdge;
+                boolean edgeContraction = state.aftSet.isDependentWith(state.currentGrain) && definiteEdge;
+                // boolean edgeContraction = false;
+
                 if(minimal || (singleOrComplete && !edgeContraction)) {
                     cutCurrentGrain(state, e, newStates, candidates, isCandidate);
                 }
@@ -128,7 +136,7 @@ public class GrainRaceState extends State {
         //         System.out.println(nondetStates.get(state));
         //     }
         // }
-        
+        System.out.println(e.eventCount + " " + size());
         return findRace;
     }
 
@@ -302,6 +310,7 @@ public class GrainRaceState extends State {
                 states.put(newState, new Candidate(1, candidates.lifetime + 1));
             }
             Candidate cands = states.get(newState);
+            cands.size = 1;
             cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             if(addToCand) {
                 cands.e2Sets.add(e.eventCount);
@@ -327,7 +336,7 @@ public class GrainRaceState extends State {
     }
 
     public void printMemory() {
-        System.out.println(nondetStates.size());
+        // System.out.println(nondetStates.size());
         // for(NondetState state: nondetStates.keySet()) {
         //     System.out.println(state.hashString);
         // }
@@ -357,7 +366,6 @@ class NondetState {
         e1LastWrite = false;
         firstFrontier = new SHBFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
         currentFrontier = new SHBFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
-        // size = 0;
         hashString = this.toString();
     }
 
@@ -371,7 +379,6 @@ class NondetState {
         e1LastWrite = state.e1LastWrite;
         firstFrontier = new SHBFrontier(state.firstFrontier);
         currentFrontier = copy ? new SHBFrontier(state.currentFrontier) : new SHBFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
-        // size = copy ? state.size : 0;
         hashString = this.toString();
     }
 
@@ -390,7 +397,6 @@ class NondetState {
         sb.append(e1Var);
         sb.append(e1Write);
         sb.append(e1LastWrite);
-        // sb.append(size);
         return sb.toString();
     }
 }

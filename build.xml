@@ -155,14 +155,14 @@
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
-            <arg value="Benchmarks/STD-Format/bubblesort.std" />
+            <arg value="Benchmarks/STD-Format/derby.std" />
             <arg value="-verbosity" />
             <arg value="1" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>
     <target name="grainrace" depends="build">
-        <java classname="GrainRaceMinLocalSHB" fork="true">
+        <java classname="GrainRaceMinLocalSyncP" fork="true">
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
