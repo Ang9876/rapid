@@ -27,6 +27,9 @@ public class GetOptions {
 		options.addOption("v", "verbosity", true, "for setting verbosity: Allowed levels = 0, 1, 2 (Default : 0)");
         options.addOption("m", "excluded-methods", true, "path to file that lists methods to be excluded");
 		options.addOption("prob", "probability", true, "probability of ignoring an event in prefix");
+		options.addOption("st", "singleThreaded", false, "use singleThreaded grain optimization");
+		options.addOption("bs", "boundedSize", true, "bound the size of each chosen grain");
+		options.addOption("win", "window", true, "window size in dynamic analysis");
 	}
 
 	public CmdOptions parse() {
@@ -73,6 +76,18 @@ public class GetOptions {
 
 			if (cmd.hasOption("prob")) {
 				cmdOpt.prob = Double.parseDouble(cmd.getOptionValue("prob"));
+			}
+
+			if (cmd.hasOption("st")) {
+				cmdOpt.singleThread = true;
+			}
+
+			if (cmd.hasOption("bs")) {
+				cmdOpt.boundedSize = Integer.parseInt(cmd.getOptionValue("bs"));
+			}
+
+			if (cmd.hasOption("win")) {
+				cmdOpt.window = Integer.parseInt(cmd.getOptionValue("win"));
 			}
 
 		} catch (ParseException e) {

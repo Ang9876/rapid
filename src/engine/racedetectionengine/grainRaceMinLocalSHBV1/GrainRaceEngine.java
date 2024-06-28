@@ -1,4 +1,4 @@
-package engine.racedetectionengine.grainRaceMinLocalSyncP;
+package engine.racedetectionengine.grainRaceMinLocalSHBV1;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -59,6 +59,7 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
     protected void postAnalysis() {
         state.finalCheck();
         System.out.println(state.racyEvents.stream().sorted().toList());
-        System.out.println(state.racyEvents.size());
+        System.out.println("Number of racy events: " + state.racyEvents.size());
+        state.printTimingProfile();
     }
 }

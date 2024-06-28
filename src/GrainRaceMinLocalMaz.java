@@ -1,6 +1,6 @@
 import cmd.CmdOptions;
 import cmd.GetOptions;
-import engine.racedetectionengine.grainRaceMinLocalSHB.GrainRaceEngine;
+import engine.racedetectionengine.grainRaceMinLocalSHBV1.GrainRaceEngine;
 import engine.racedetectionengine.shb.SHBEngine;
 import engine.racedetectionengine.syncpreserving.SyncPreservingRaceOfflineEngine;
 

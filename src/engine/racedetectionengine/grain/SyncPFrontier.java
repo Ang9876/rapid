@@ -5,7 +5,7 @@ import java.util.BitSet;
 import event.Event;
 
 public class SyncPFrontier {
-   public BitSet missedThreads;
+    public BitSet missedThreads;
     public BitSet missedLastWtVars;
     public BitSet blockedLocks;
     public BitSet missedLastLocks;
@@ -77,15 +77,17 @@ public class SyncPFrontier {
     public boolean threadMissed(Event e) {
         return missedThreads.get(e.getThread().getId());
     }
-    // private boolean subsume(BitSet b1, BitSet b2) {
-    //     BitSet b1Clone = (BitSet)b1.clone();
-    //     b1Clone.andNot(b2);
-    //     return b1Clone.isEmpty();
-    // }
 
-    // public boolean subsume(Frontier other) {
-    //     return !this.threads.isEmpty() && !other.threads.isEmpty() && subsume(this.threads, other.threads) && subsume(this.lastWtVars, other.lastWtVars) && subsume(this.locks, other.locks);
-    // }
+    private boolean subsume(BitSet b1, BitSet b2) {
+        // BitSet b1Clone = (BitSet)b1.clone();
+        // b1Clone.andNot(b2);
+        // return b1Clone.isEmpty();
+        return b1.equals(b2);
+    }
+
+    public boolean subsume(SyncPFrontier other) {
+        return subsume(this.missedThreads, other.missedThreads) && subsume(this.missedLastWtVars, other.missedLastWtVars) && subsume(this.blockedLocks, other.blockedLocks) && subsume(this.includedThreads, other.includedThreads) && subsume(this.includedLocks, other.includedLocks);
+    }
 
     public void toString(StringBuffer sb) {
         sb.append(missedThreads);

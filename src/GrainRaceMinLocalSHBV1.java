@@ -4,15 +4,15 @@ import cmd.CmdOptions;
 import cmd.GetOptions;
 import engine.racedetectionengine.syncpreserving.SyncPreservingRaceOfflineEngine;
 
-public class GrainRaceMinLocalSyncP {
+public class GrainRaceMinLocalSHBV1 {
     public static void main(String[] args) {
         CmdOptions options = new GetOptions(args).parse();
         SyncPreservingRaceOfflineEngine engine2 = new SyncPreservingRaceOfflineEngine(options.parserType, options.path);
         engine2.analyzeTrace(true, 1);
         HashSet<Long> syncPRacyEvents = engine2.getRacyEvents();
-        engine.racedetectionengine.grainRaceMinLocalSyncP.GrainRaceEngine engine3 = new engine.racedetectionengine.grainRaceMinLocalSyncP.GrainRaceEngine(options.parserType, options.path, options.singleThread, options.boundedSize != -1, options.boundedSize, options.window != -1, options.window);
+        engine.racedetectionengine.grainRaceMinLocalSHBV1.GrainRaceEngine engine3 = new engine.racedetectionengine.grainRaceMinLocalSHBV1.GrainRaceEngine(options.parserType, options.path, options.singleThread, options.boundedSize != -1, options.boundedSize, options.window != -1, options.window);
         engine3.analyzeTrace(true, 0);
-        HashSet<Long> grainRacyEvents = (HashSet<Long>)engine3.getRacyEvents().clone();      
+        HashSet<Long> grainRacyEvents = (HashSet<Long>)engine3.getRacyEvents().clone();        
         grainRacyEvents.removeAll(syncPRacyEvents);
         System.out.println("New races: " + grainRacyEvents.stream().sorted().toList());
         System.out.println("New races num: " + grainRacyEvents.size());  

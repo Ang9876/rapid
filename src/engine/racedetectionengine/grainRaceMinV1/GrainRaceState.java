@@ -1,4 +1,4 @@
-package engine.racedetectionengine.grainRaceMin;
+package engine.racedetectionengine.grainRaceMinV1;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -18,7 +18,7 @@ public class GrainRaceState extends State {
     public static int numOfVars;
     public static int numOfLocks;
     HashSet<Thread> threadSet;
-    TreeMap<NondetState, HashMap<String, Candidate>> nondetStates;
+    HashMap<String, TreeMap<NondetState, HashMap<String, Candidate>>> nondetStates;
     HashMap<Variable, HashSet<Long>> lastReads;
     public HashSet<Long> racyEvents = new HashSet<>();
     private boolean singleThread;
@@ -29,9 +29,10 @@ public class GrainRaceState extends State {
 
     public GrainRaceState(HashSet<Thread> tSet, HashMap<Variable, HashSet<Long>> lastReads, boolean singleThread, boolean boundedSize, int size) {
         threadSet = tSet;
-        nondetStates = new TreeMap<>(new StateComparator());
+        nondetStates = new HashMap<>();
         NondetState initState = new NondetState();
-        nondetStates.put(initState, new HashMap<>());    
+        nondetStates.put(initState.getSignature(), new TreeMap<>(new StateComparator()));   
+        nondetStates.get(initState.getSignature()).put(initState, new HashMap<>()); 
         this.lastReads = lastReads;
         this.singleThread = singleThread;
         this.boundedSize = boundedSize;
@@ -44,46 +45,49 @@ public class GrainRaceState extends State {
 
     public boolean update(GrainRaceEvent e) {
         boolean findRace = false;
-        TreeMap<NondetState, HashMap<String, Candidate>> newStates = new TreeMap<>(new StateComparator());
-        for(NondetState state: nondetStates.keySet()){
-            HashMap<String, Candidate> candidates = nondetStates.get(state);
-            // System.out.println(state.hashString);
-            // System.out.println(candidates);
-            boolean isCandidate =  e.getType().isAccessType() && isConflict(candidates.keySet(), e);
-            boolean minimal = state.currentGrain.incompleteWtVarsBitSet.isEmpty() && state.currentGrain.incompleteAcqsBitSet.isEmpty();
-            boolean singleThread = !this.singleThread || state.currentGrain.threadsBitSet.get(e.getThread().getId());
-            boolean boundedSize = !this.boundedSize || state.size < size;
+        HashMap<String, TreeMap<NondetState, HashMap<String, Candidate>>> newStates = new HashMap<>(); 
+        for(String sig: nondetStates.keySet()) {
+            TreeMap<NondetState, HashMap<String, Candidate>> nondet = nondetStates.get(sig);
+            for(NondetState state: nondet.keySet()){
+                HashMap<String, Candidate> candidates = nondet.get(state);
+                // System.out.println(state.hashString);
+                // System.out.println(candidates);
+                boolean isCandidate =  e.getType().isAccessType() && isConflict(candidates.keySet(), e);
+                boolean minimal = state.currentGrain.incompleteWtVarsBitSet.isEmpty() && state.currentGrain.incompleteAcqsBitSet.isEmpty();
+                boolean singleThread = !this.singleThread || state.currentGrain.threadsBitSet.get(e.getThread().getId());
+                boolean boundedSize = !this.boundedSize || state.size < size;
 
-            if(!state.aftSet.isDependentWith(state.currentGrain)){
-                for(String s: candidates.keySet()) {
-                    int sizeBefore = racyEvents.size();
-                    racyEvents.addAll(candidates.get(s).e2Sets);
-                    int sizeAfter = racyEvents.size();
-                    if(sizeAfter > sizeBefore) {
-                        System.out.println(racyEvents);
+                if(!state.aftSet.isDependentWith(state.currentGrain)){
+                    for(String s: candidates.keySet()) {
+                        int sizeBefore = racyEvents.size();
+                        racyEvents.addAll(candidates.get(s).e2Sets);
+                        int sizeAfter = racyEvents.size();
+                        if(sizeAfter > sizeBefore) {
+                            System.out.println(racyEvents);
+                        }
+                        findRace = true;
+                    } 
+                }
+                
+                if(!state.firstGrain.isEmpty) {
+                    boolean singleOrComplete = state.currentGrain.isSingleton || state.currentGrain.isComplete;
+                    boolean definiteEdge = state.currentGrain.isDefDependentWith(e) || state.aftSet.isDefDependentWith(e);
+                    boolean edgeContraction = state.aftSet.isDependentWith(state.currentGrain) && definiteEdge && boundedSize;
+                    if(minimal || (singleOrComplete && !edgeContraction)) {
+                        cutCurrentGrain(state, e, newStates, candidates, isCandidate);
                     }
-                    findRace = true;
-                } 
-            }
-            
-            if(!state.firstGrain.isEmpty) {
-                boolean singleOrComplete = state.currentGrain.isSingleton || state.currentGrain.isComplete;
-                boolean definiteEdge = state.currentGrain.isDefDependentWith(e) || state.aftSet.isDefDependentWith(e);
-                boolean edgeContraction = state.aftSet.isDependentWith(state.currentGrain) && definiteEdge;
-                if(minimal || (singleOrComplete && !edgeContraction)) {
-                    cutCurrentGrain(state, e, newStates, candidates, isCandidate);
+                    // TODO: IF CUT OPTION IS RULED OUT, SHOULD WE DISABLE SINGLETHREAD CHECKING.
+                    if(!minimal && boundedSize && singleThread) {
+                        extendCurrentGrain(state, e, newStates, candidates, edgeContraction);
+                    }
                 }
-                // TODO: IF CUT OPTION IS RULED OUT, SHOULD WE DISABLE SINGLETHREAD CHECKING.
-                if(!minimal && (boundedSize || edgeContraction) && singleThread) {
-                    extendCurrentGrain(state, e, newStates, candidates, edgeContraction);
-                }
-            }
-            else {
-                if(state.currentGrain.isSingleton || state.currentGrain.isComplete) {
-                    cutCurrentGrain(state, e, newStates, candidates, isCandidate);
-                }
-                if(!minimal && boundedSize && singleThread) {
-                    extendCurrentGrain(state, e, newStates, candidates, false);
+                else {
+                    if(state.currentGrain.isSingleton || state.currentGrain.isComplete) {
+                        cutCurrentGrain(state, e, newStates, candidates, isCandidate);
+                    }
+                    if(!minimal && boundedSize && singleThread) {
+                        extendCurrentGrain(state, e, newStates, candidates, false);
+                    }
                 }
             }
         }
@@ -100,17 +104,25 @@ public class GrainRaceState extends State {
             newState.currentGrain.firstLock = e.getLock().getId();
         }
         newState.hashString = newState.toString();
-        if(!newStates.containsKey(newState)) {
-            newStates.put(newState, new HashMap<>());
+        String sig = newState.getSignature();
+        if(!newStates.containsKey(sig)) {
+            newStates.put(sig, new TreeMap<>(new StateComparator()));
+        }
+        TreeMap<NondetState, HashMap<String, Candidate>> nondet = newStates.get(sig); 
+        if(!nondet.containsKey(newState)) {
+            nondet.put(newState, new HashMap<>());
         }
         if(e.getType().isAccessType()) {
-            newStates.get(newState).put(e.getName(), new Candidate());
+            nondet.get(newState).put(e.getName(), new Candidate());
         }
         nondetStates = newStates;
+        // System.out.println(e.eventCount);
         // if(e.eventCount >= 1) {
         //     System.out.println(e.toStandardFormat());
-        //     for(NondetState state: nondetStates.keySet()) {
-        //         System.out.println(state);
+        //     for(String sig1: nondetStates.keySet()) {
+        //         for(NondetState state: nondetStates.get(sig1).keySet()) {
+        //             System.out.println(state);
+        //         }
         //     }
         // }
         
@@ -166,7 +178,7 @@ public class GrainRaceState extends State {
         return false;
     }
 
-    private void extendCurrentGrain(NondetState state, GrainRaceEvent e, TreeMap<NondetState, HashMap<String, Candidate>> states, HashMap<String, Candidate> candidates, boolean edgeContraction) {
+    private void extendCurrentGrain(NondetState state, GrainRaceEvent e, HashMap<String, TreeMap<NondetState, HashMap<String, Candidate>>> states, HashMap<String, Candidate> candidates, boolean edgeContraction) {
         boolean isFirstGrain = state.firstGrain.isEmpty;
         NondetState newState = new NondetState(state, true, false);
         newState.currentGrain.updateGrain(e, lastReads, e.eventCount);
@@ -214,13 +226,20 @@ public class GrainRaceState extends State {
         HashSet<String> newCands = new HashSet<>(candidates.keySet());
         // System.out.println("AddCon " + newState);
         // System.out.println(states);
-        if(addToStates(states, newState, newCands)) {
+        String sig = newState.getSignature();
+        boolean fresh = false;
+        if(!states.containsKey(sig)) {
+            fresh = true;
+            states.put(sig, new TreeMap<>(new StateComparator()));
+        } 
+        TreeMap<NondetState, HashMap<String, Candidate>> nondet = states.get(sig);
+        if(fresh || addToStates(nondet, newState, newCands)) {
             newState.hashString = newState.toString();
             // System.out.println("Add" + newState);
-            if(!states.containsKey(newState)) {
-                states.put(newState, new HashMap<>());
+            if(!nondet.containsKey(newState)) {
+                nondet.put(newState, new HashMap<>());
             }
-            HashMap<String, Candidate> cands = states.get(newState);
+            HashMap<String, Candidate> cands = nondet.get(newState);
             for(String candName: newCands) {
                 if(cands.containsKey(candName)) {
                     cands.get(candName).e2Sets.addAll(candidates.get(candName).e2Sets);
@@ -233,8 +252,11 @@ public class GrainRaceState extends State {
         // System.out.println(states);
     }
 
-    private void cutCurrentGrain(NondetState state, GrainRaceEvent e, TreeMap<NondetState, HashMap<String, Candidate>> states, HashMap<String, Candidate> candidates, boolean isCandidate) {
+    private void cutCurrentGrain(NondetState state, GrainRaceEvent e, HashMap<String, TreeMap<NondetState, HashMap<String, Candidate>>> states, HashMap<String, Candidate> candidates, boolean isCandidate) {
         boolean isFirstGrain = state.firstGrain.isEmpty;
+        if(isFirstGrain && candidates.isEmpty()) {
+            return;
+        }
         NondetState newState = isFirstGrain ? new NondetState(state, false, true) : new NondetState(state, false, false);
         if(!isFirstGrain && (state.firstGrain.isDependentWith(state.currentGrain) || state.aftSet.isDependentWith(state.currentGrain))) {
             newState.aftSet.updateGrain(state.currentGrain);
@@ -252,12 +274,19 @@ public class GrainRaceState extends State {
         }
         
         HashSet<String> newCands = new HashSet<>(candidates.keySet());
-        if(addToStates(states, newState, newCands)) {
+        String sig = newState.getSignature();
+        boolean fresh = false;
+        if(!states.containsKey(sig)) {
+            fresh = true;
+            states.put(sig, new TreeMap<>(new StateComparator()));
+        } 
+        TreeMap<NondetState, HashMap<String, Candidate>> nondet = states.get(sig);
+        if(fresh || addToStates(nondet, newState, newCands)) {
             newState.hashString = newState.toString();
-            if(!states.containsKey(newState)) {
-                states.put(newState, new HashMap<>());
+            if(!nondet.containsKey(newState)) {
+                nondet.put(newState, new HashMap<>());
             }
-            HashMap<String, Candidate> cands = states.get(newState);
+            HashMap<String, Candidate> cands = nondet.get(newState);
             for(String candName: newCands) {
                 if(!cands.containsKey(candName)) {
                     cands.put(candName, new Candidate());
@@ -278,19 +307,26 @@ public class GrainRaceState extends State {
     }
 
     public long size() {
-        return nondetStates.size();
+        int size = 0;
+        for(String sig: nondetStates.keySet()) {
+            size += nondetStates.get(sig).size();
+        }
+        return size;
     }
 
     public boolean finalCheck() {
-        for(NondetState state: nondetStates.keySet()) {
-            HashMap<String, Candidate> candidates = nondetStates.get(state); 
-            if(!state.firstGrain.threadsBitSet.isEmpty() && !state.currentGrain.threadsBitSet.isEmpty() && !state.aftSet.isDependentWith(state.currentGrain)) {
-                for(String s: candidates.keySet()) {
-                    int sizeBefore = racyEvents.size();
-                    racyEvents.addAll(candidates.get(s).e2Sets);
-                    int sizeAfter = racyEvents.size();
-                    if(sizeAfter > sizeBefore) {
-                        System.out.println(racyEvents);
+        for(String sig: nondetStates.keySet()) {
+            TreeMap<NondetState, HashMap<String, Candidate>> nondet = nondetStates.get(sig);
+            for(NondetState state: nondetStates.get(sig).keySet()) {
+                HashMap<String, Candidate> candidates = nondet.get(state); 
+                if(!state.firstGrain.threadsBitSet.isEmpty() && !state.currentGrain.threadsBitSet.isEmpty() && !state.aftSet.isDependentWith(state.currentGrain)) {
+                    for(String s: candidates.keySet()) {
+                        int sizeBefore = racyEvents.size();
+                        racyEvents.addAll(candidates.get(s).e2Sets);
+                        int sizeAfter = racyEvents.size();
+                        if(sizeAfter > sizeBefore) {
+                            System.out.println(racyEvents);
+                        }
                     }
                 }
             }
@@ -299,7 +335,7 @@ public class GrainRaceState extends State {
     }
 
     public void printMemory() {
-        System.out.println(nondetStates.size());
+        System.out.println(size());
     }
 }
 
@@ -328,6 +364,18 @@ class NondetState {
 
     public boolean subsume(NondetState other) {
         return !this.firstGrain.isEmpty && this.firstGrain.subsume(other.firstGrain) && this.currentGrain.subsume(other.currentGrain) && this.aftSet.subsume(other.aftSet) && this.size <= other.size;
+    }
+
+    public String getSignature() {
+        StringBuffer sb = new StringBuffer();
+        sb.append(currentGrain.incompleteWtVarsBitSet);
+        sb.append(currentGrain.incompleteAcqsBitSet);
+        sb.append(currentGrain.isSingleton);
+        sb.append(currentGrain.isComplete);
+        sb.append(currentGrain.firstWrite);
+        sb.append(currentGrain.firstLock);
+        sb.append(firstGrain.isEmpty);
+        return sb.toString();
     }
 
     public String toString() {

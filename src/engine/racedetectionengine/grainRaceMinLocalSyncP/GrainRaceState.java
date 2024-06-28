@@ -3,6 +3,7 @@ package engine.racedetectionengine.grainRaceMinLocalSyncP;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.TreeMap;
 
 import engine.racedetectionengine.State;
@@ -25,8 +26,10 @@ public class GrainRaceState extends State {
     private boolean singleThread;
     private boolean boundedSize;
     private int size;
+    private boolean window;
+    private int win;
 
-    public GrainRaceState(HashSet<Thread> tSet, HashMap<Variable, HashSet<Long>> lastReads, boolean singleThread, boolean boundedSize, int size) {
+    public GrainRaceState(HashSet<Thread> tSet, HashMap<Variable, HashSet<Long>> lastReads, boolean singleThread, boolean boundedSize, int size, boolean window, int win) {
         threadSet = tSet;
         nondetStates = new TreeMap<>(new StateComparator());
         NondetState initState = new NondetState();
@@ -35,6 +38,12 @@ public class GrainRaceState extends State {
         this.singleThread = singleThread;
         this.boundedSize = boundedSize;
         this.size = size;
+        this.window = window;
+        this.win = win;
+        System.out.println("Mode of incomplete optimization: " + 
+                            (singleThread ? "SingleThread, " : "") + 
+                            (boundedSize ? "Bounded Grain Size = " + size + ", " : "") +
+                            (window ? "Window = " + win : ""));
     }
 
     public boolean update(GrainRaceEvent e) {
@@ -50,23 +59,33 @@ public class GrainRaceState extends State {
             }
             boolean minimal = state.currentGrain.incompleteWtVarsBitSet.isEmpty() && state.currentGrain.incompleteAcqsBitSet.isEmpty();
             boolean singleThread = !this.singleThread || state.currentGrain.threadsBitSet.get(e.getThread().getId());
-            boolean boundedSize = !this.boundedSize || candidates.size <= size;
-            boolean tooOld = candidates.lifetime > 500;
+            boolean boundedSize = !this.boundedSize || candidates.size < size;
+            boolean tooOld = window && candidates.lifetime > win;
             if(tooOld) {
                 continue;
             }
 
             if(state.reorder == 0 && !state.aftSet.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()){
+                int sizeBefore = racyEvents.size();
                 for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
                     racyEvents.addAll(candidates.e2Sets.get(e1));
                     findRace = true;
                 }
+                int sizeAfter = racyEvents.size();
+                if(sizeAfter > sizeBefore) {
+                    System.out.println(racyEvents);
+                }
             }
             
             if(state.reorder == 1 && !state.aftSet.isDependentWith(state.currentGrain) && !state.firstGrain.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()) {
+                int sizeBefore = racyEvents.size();
                 for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
                     racyEvents.addAll(candidates.e2Sets.get(e1));
                     findRace = true;
+                }
+                int sizeAfter = racyEvents.size();
+                if(sizeAfter > sizeBefore) {
+                    System.out.println(racyEvents);
                 }
             }
 
@@ -130,22 +149,37 @@ public class GrainRaceState extends State {
         return findRace;
     }
 
-    // private boolean addToStates(TreeMap<NondetState, Candidate> states, NondetState newState) {
-    //     TreeSet<NondetState> subsumedStates = new TreeSet<>(new StateComparator());
-    //     boolean add = true;
-    //     for(NondetState state: states.keySet()) {
-    //         if(add && state.subsume(newState)) {
-    //             add = false;
-    //         }
-    //         if(newState.subsume(state)) {
-    //             subsumedStates.add(state);
-    //         }
-    //     }
-    //     for(NondetState state: subsumedStates) {
-    //         states.remove(state);
-    //     }
-    //     return add;
-    // }
+    private boolean addToStates(TreeMap<NondetState, Candidate> states, NondetState newState, Set<Triplet<Integer, Integer, Boolean>> cands) {
+        if(states.containsKey(newState)) {
+            return true;
+        }
+        for(NondetState state: states.keySet()) {
+            Candidate candidates = states.get(state);
+            boolean in = false;
+            for(Triplet<Integer, Integer, Boolean> s: cands) {
+                if(candidates.e2Sets.keySet().contains(s)) {
+                    in = true;
+                    break;
+                }
+            }
+            if(!in) {
+                continue;
+            }
+            if(state.subsume(newState)) {
+                cands.removeAll(candidates.e2Sets.keySet());
+                if(cands.isEmpty()) {
+                    return false;
+                }
+            }
+            if(newState.subsume(state)) {
+                for(Triplet<Integer, Integer, Boolean> s: cands) {
+                    candidates.e2Sets.remove(s);
+                }
+            }
+        }
+        states.entrySet().removeIf(state -> !state.getKey().firstGrain.isEmpty && state.getValue().e2Sets.isEmpty());
+        return true;
+    }
 
     private boolean isConflict(Candidate candidates, GrainRaceEvent e) {
         for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
@@ -207,21 +241,25 @@ public class GrainRaceState extends State {
                 newState2.firstFrontierInclude(e);
                 newState2.reorder = -1;
                 newState2.hashString = newState2.toString();
-                if(!states.containsKey(newState2)) {
-                    states.put(newState2, new Candidate(1, candidates.lifetime)); 
-                }
-                
-                Candidate cands = states.get(newState2);
-                for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                    if(cands.e2Sets.containsKey(e1)) {
-                        cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+
+                HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+                if(addToStates(states, newState2, newCands)) {
+                    if(!states.containsKey(newState2)) {
+                        states.put(newState2, new Candidate(1, candidates.lifetime)); 
                     }
-                    else {
-                        cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
+                    
+                    Candidate cands = states.get(newState2);
+                    for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                        if(cands.e2Sets.containsKey(e1)) {
+                            cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+                        }
+                        else {
+                            cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
+                        }
                     }
+                    cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                    cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
                 }
-                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
-                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
             }
 
             NondetState newState3 = new NondetState(newState, true, false);
@@ -229,23 +267,27 @@ public class GrainRaceState extends State {
             newState3.firstFrontier.ignore(e);
             newState3.reorder = -1;
             newState3.hashString = newState3.toString();
-            if(!states.containsKey(newState3)) {
-                states.put(newState3, new Candidate(1, candidates.lifetime)); 
-            }
-            Candidate cands = states.get(newState3);
-            for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                if(cands.e2Sets.containsKey(e1)) {
-                    cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+
+            HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+            if(addToStates(states, newState3, newCands)) {
+                if(!states.containsKey(newState3)) {
+                    states.put(newState3, new Candidate(1, candidates.lifetime)); 
                 }
-                else {
-                    cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
+                Candidate cands = states.get(newState3);
+                for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                    if(cands.e2Sets.containsKey(e1)) {
+                        cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+                    }
+                    else {
+                        cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
+                    }
+                } 
+                if(e.getType().isAccessType() && !isThreadIgnore) {
+                    cands.e2Sets.put(new Triplet<>(e.getThread().getId(), e.getVariable().getId(), e.getType().isWrite()), new HashSet<>());
                 }
+                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             } 
-            if(e.getType().isAccessType() && !isThreadIgnore) {
-                cands.e2Sets.put(new Triplet<>(e.getThread().getId(), e.getVariable().getId(), e.getType().isWrite()), new HashSet<>());
-            }
-            cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
-            cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
         }   
         else {
             if(state.reorder == 0 && !newState.aftSet.isDependentWith(newState.currentGrain)) {
@@ -254,20 +296,24 @@ public class GrainRaceState extends State {
                     newState2.currentFrontierInclude(e);
                     newState2.reorder = 0;
                     newState2.hashString = newState2.toString();
-                    if(!states.containsKey(newState2)) {
-                        states.put(newState2, new Candidate(1, candidates.lifetime)); 
-                    }
-                    Candidate cands = states.get(newState2);
-                    for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                        if(cands.e2Sets.containsKey(e1)) {
-                            cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+
+                    HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+                    if(addToStates(states, newState2, newCands)) {
+                        if(!states.containsKey(newState2)) {
+                            states.put(newState2, new Candidate(1, candidates.lifetime)); 
                         }
-                        else {
-                            cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
+                        Candidate cands = states.get(newState2);
+                        for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                            if(cands.e2Sets.containsKey(e1)) {
+                                cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+                            }
+                            else {
+                                cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
+                            }
                         }
+                        cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                        cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
                     }
-                    cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
-                    cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
                 }
 
                 NondetState newState3 = new NondetState(newState, true, false);
@@ -275,28 +321,32 @@ public class GrainRaceState extends State {
                 newState3.currentFrontier.ignore(e);
                 newState3.reorder = 0;
                 newState3.hashString = newState3.toString();
-                if(!states.containsKey(newState3)) {
-                    states.put(newState3, new Candidate(1, candidates.lifetime)); 
-                }
-                Candidate cands = states.get(newState3);
-                for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                    if(cands.e2Sets.containsKey(e1)) {
-                        cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+
+                HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+                if(addToStates(states, newState3, newCands)) {
+                    if(!states.containsKey(newState3)) {
+                        states.put(newState3, new Candidate(1, candidates.lifetime)); 
                     }
-                    else {
-                        cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
-                    }
-                }
-                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
-                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
-                // cands.e2Sets.addAll(candidates.e2Sets);
-                if(isCandidate && !isThreadIgnore) {
-                    for(Triplet<Integer, Integer, Boolean> e1: cands.e2Sets.keySet()) {
-                        if(e1.first != e.getThread().getId() && e1.second == e.getVariable().getId() && (e1.third || e.getType().isWrite())) {
-                            cands.e2Sets.get(e1).add(e.eventCount);
+                    Candidate cands = states.get(newState3);
+                    for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                        if(cands.e2Sets.containsKey(e1)) {
+                            cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+                        }
+                        else {
+                            cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
                         }
                     }
-                } 
+                    cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                    cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
+                    // cands.e2Sets.addAll(candidates.e2Sets);
+                    if(isCandidate && !isThreadIgnore) {
+                        for(Triplet<Integer, Integer, Boolean> e1: cands.e2Sets.keySet()) {
+                            if(e1.first != e.getThread().getId() && e1.second == e.getVariable().getId() && (e1.third || e.getType().isWrite())) {
+                                cands.e2Sets.get(e1).add(e.eventCount);
+                            }
+                        }
+                    } 
+                }
             }
             else if(state.reorder == 1 && !newState.aftSet.isDependentWith(newState.currentGrain)) {
                 if(!newState.firstFrontier.mustIgnore(e) && !newState.currentFrontier.mustIgnore(e)) {
@@ -304,11 +354,74 @@ public class GrainRaceState extends State {
                     newState2.currentFrontierInclude(e);
                     newState2.reorder = 1;
                     newState2.hashString = newState2.toString();
-                    if(!states.containsKey(newState2)) {
-                        states.put(newState2, new Candidate(1, candidates.lifetime)); 
+
+                    HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+                    if(addToStates(states, newState2, newCands)) {
+                        if(!states.containsKey(newState2)) {
+                            states.put(newState2, new Candidate(1, candidates.lifetime)); 
+                        }
+                        Candidate cands = states.get(newState2);
+                        for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                            if(cands.e2Sets.containsKey(e1)) {
+                                cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+                            }
+                            else {
+                                cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
+                            }
+                        }
+                        cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                        cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
                     }
-                    Candidate cands = states.get(newState2);
-                    for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
+                }
+
+                if(!(e.getType().isRelease() && !newState.currentFrontier.missedLastLocks.get(e.getLock().getId()) && newState.firstFrontier.includedLocks.get(e.getLock().getId()))) {
+                    NondetState newState3 = new NondetState(newState, true, false);
+                    boolean isThreadIgnore = newState3.currentFrontier.threadMissed(e);
+                    newState3.currentFrontier.ignore(e);
+                    newState3.reorder = 1;
+                    newState3.hashString = newState3.toString();
+
+                    HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+                    if(addToStates(states, newState3, newCands)) {
+                        if(!states.containsKey(newState3)) {
+                            states.put(newState3, new Candidate(1, candidates.lifetime)); 
+                        }
+                        Candidate cands = states.get(newState3);
+                        for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                            if(cands.e2Sets.containsKey(e1)) {
+                                cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
+                            }
+                            else {
+                                cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
+                            }
+                        }
+                        cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                        cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
+                        // cands.e2Sets.addAll(candidates.e2Sets);
+                        if(isCandidate && !isThreadIgnore) {
+                            for(Triplet<Integer, Integer, Boolean> e1: cands.e2Sets.keySet()) {
+                                if(e1.first != e.getThread().getId() && e1.second == e.getVariable().getId() && (e1.third || e.getType().isWrite())) {
+                                    cands.e2Sets.get(e1).add(e.eventCount);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else {
+                if(newState.reorder == 1 || newState.reorder == 0) {
+                    newState.currentFrontier.clear();
+                }
+                newState.reorder = 2;
+                newState.hashString = newState.toString();
+
+                HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+                if(addToStates(states, newState, newCands)) {
+                    if(!states.containsKey(newState)) {
+                        states.put(newState, new Candidate(1, candidates.lifetime)); 
+                    }
+                    Candidate cands = states.get(newState);
+                    for(Triplet<Integer, Integer, Boolean> e1: newCands) {
                         if(cands.e2Sets.containsKey(e1)) {
                             cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
                         }
@@ -319,55 +432,6 @@ public class GrainRaceState extends State {
                     cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
                     cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
                 }
-
-                NondetState newState3 = new NondetState(newState, true, false);
-                boolean isThreadIgnore = newState3.currentFrontier.threadMissed(e);
-                newState3.currentFrontier.ignore(e);
-                newState3.reorder = 1;
-                newState3.hashString = newState3.toString();
-                if(!states.containsKey(newState3)) {
-                    states.put(newState3, new Candidate(1, candidates.lifetime)); 
-                }
-                Candidate cands = states.get(newState3);
-                for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                    if(cands.e2Sets.containsKey(e1)) {
-                        cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
-                    }
-                    else {
-                        cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
-                    }
-                }
-                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
-                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
-                // cands.e2Sets.addAll(candidates.e2Sets);
-                if(isCandidate && !isThreadIgnore) {
-                    for(Triplet<Integer, Integer, Boolean> e1: cands.e2Sets.keySet()) {
-                        if(e1.first != e.getThread().getId() && e1.second == e.getVariable().getId() && (e1.third || e.getType().isWrite())) {
-                            cands.e2Sets.get(e1).add(e.eventCount);
-                        }
-                    }
-                } 
-            }
-            else {
-                if(newState.reorder == 1 || newState.reorder == 0) {
-                    newState.currentFrontier.clear();
-                }
-                newState.reorder = 2;
-                newState.hashString = newState.toString();
-                if(!states.containsKey(newState)) {
-                    states.put(newState, new Candidate(1, candidates.lifetime)); 
-                }
-                Candidate cands = states.get(newState);
-                for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                    if(cands.e2Sets.containsKey(e1)) {
-                        cands.e2Sets.get(e1).addAll(candidates.e2Sets.get(e1));
-                    }
-                    else {
-                        cands.e2Sets.put(e1, new HashSet<>(candidates.e2Sets.get(e1)));
-                    }
-                }
-                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
-                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1; 
             }
         }
         // System.out.println(states);
@@ -406,17 +470,22 @@ public class GrainRaceState extends State {
                 newState2.currentFrontierInclude(e);
                 newState2.reorder = 0;
                 newState2.hashString = newState2.toString();
-                if(!states.containsKey(newState2)) {
-                    states.put(newState2, new Candidate(1, candidates.lifetime)); 
-                }
-                Candidate cands = states.get(newState2);
-                for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                    if(!cands.e2Sets.containsKey(e1)) {
-                        cands.e2Sets.put(e1, new HashSet<>());
+                
+                HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+                if(addToStates(states, newState2, newCands)) {
+                    if(!states.containsKey(newState2)) {
+                        states.put(newState2, new Candidate(1, candidates.lifetime)); 
                     }
+                    Candidate cands = states.get(newState2);
+                    for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                        if(!cands.e2Sets.containsKey(e1)) {
+                            cands.e2Sets.put(e1, new HashSet<>());
+                        }
+                    }
+                    cands.size = 1;
+                    cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
                 }
-                cands.size = 1;
-                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
+                
             }
 
             
@@ -425,22 +494,24 @@ public class GrainRaceState extends State {
             newState3.currentFrontier.ignore(e);
             newState3.reorder = 0;
             newState3.hashString = newState3.toString();
-            
-            if(!states.containsKey(newState3)) {
-                states.put(newState3, new Candidate(1, candidates.lifetime)); 
-            } 
-            Candidate cands = states.get(newState3);
-            for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                if(!cands.e2Sets.containsKey(e1)) {
-                    cands.e2Sets.put(e1, new HashSet<>());
+            HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+            if(addToStates(states, newState3, newCands)) {
+                if(!states.containsKey(newState3)) {
+                    states.put(newState3, new Candidate(1, candidates.lifetime)); 
+                } 
+                Candidate cands = states.get(newState3);
+                for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                    if(!cands.e2Sets.containsKey(e1)) {
+                        cands.e2Sets.put(e1, new HashSet<>());
+                    }
                 }
-            }
-            cands.size = 1;
-            cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
-            if(isCandidate && !isThreadIgnore) {
-                for(Triplet<Integer, Integer, Boolean> e1: cands.e2Sets.keySet()) {
-                    if(e1.first != e.getThread().getId() && e1.second == e.getVariable().getId() && (e1.third || e.getType().isWrite())) {
-                        cands.e2Sets.get(e1).add(e.eventCount);
+                cands.size = 1;
+                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
+                if(isCandidate && !isThreadIgnore) {
+                    for(Triplet<Integer, Integer, Boolean> e1: cands.e2Sets.keySet()) {
+                        if(e1.first != e.getThread().getId() && e1.second == e.getVariable().getId() && (e1.third || e.getType().isWrite())) {
+                            cands.e2Sets.get(e1).add(e.eventCount);
+                        }
                     }
                 }
             }
@@ -452,53 +523,68 @@ public class GrainRaceState extends State {
             newState2.currentFrontierInclude(e);
             newState2.reorder = 1;
             newState2.hashString = newState2.toString();
-            if(!states.containsKey(newState2)) {
-                states.put(newState2, new Candidate(1, candidates.lifetime)); 
+            HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+            if(addToStates(states, newState2, newCands)) {
+                if(!states.containsKey(newState2)) {
+                    states.put(newState2, new Candidate(1, candidates.lifetime)); 
+                }
+                Candidate cands = states.get(newState2);
+                for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                    if(!cands.e2Sets.containsKey(e1)) {
+                        cands.e2Sets.put(e1, new HashSet<>());
+                    }
+                }
+                cands.size = 1;
+                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             }
-            Candidate cands = states.get(newState2);
-            cands.size = 1;
-            cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             
             NondetState newState3 = new NondetState(newState, true, false);
             newState3.currentFrontier.ignore(e);
             newState2.reorder = 1;
             newState3.hashString = newState3.toString();
-            if(!states.containsKey(newState3)) {
-                states.put(newState3, new Candidate(1, candidates.lifetime)); 
-            } 
-            Candidate cands1 = states.get(newState3);
-            for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                if(!cands.e2Sets.containsKey(e1)) {
-                    cands.e2Sets.put(e1, new HashSet<>());
-                }
-            }
-            cands1.size = 1;
-            cands1.lifetime = (cands1.lifetime < candidates.lifetime + 1) ? cands1.lifetime : candidates.lifetime + 1;
-            // cands.e2Sets.addAll(candidates.e2Sets);
-            if(isCandidate) {
-                for(Triplet<Integer, Integer, Boolean> e1: cands1.e2Sets.keySet()) {
-                    if(e1.first != e.getThread().getId() && e1.second == e.getVariable().getId() && (e1.third || e.getType().isWrite())) {
-                        cands1.e2Sets.get(e1).add(e.eventCount);
+            HashSet<Triplet<Integer, Integer, Boolean>> newCands1 = new HashSet<>(candidates.e2Sets.keySet());
+            if(addToStates(states, newState3, newCands1)) {
+                if(!states.containsKey(newState3)) {
+                    states.put(newState3, new Candidate(1, candidates.lifetime)); 
+                } 
+                Candidate cands1 = states.get(newState3);
+                for(Triplet<Integer, Integer, Boolean> e1: newCands1) {
+                    if(!cands1.e2Sets.containsKey(e1)) {
+                        cands1.e2Sets.put(e1, new HashSet<>());
                     }
                 }
-            } 
+                cands1.size = 1;
+                cands1.lifetime = (cands1.lifetime < candidates.lifetime + 1) ? cands1.lifetime : candidates.lifetime + 1;
+                // cands.e2Sets.addAll(candidates.e2Sets);
+                if(isCandidate) {
+                    for(Triplet<Integer, Integer, Boolean> e1: cands1.e2Sets.keySet()) {
+                        if(e1.first != e.getThread().getId() && e1.second == e.getVariable().getId() && (e1.third || e.getType().isWrite())) {
+                            cands1.e2Sets.get(e1).add(e.eventCount);
+                        }
+                    }
+                } 
+            }
         }
 
         // Not track SyncP Prefix
         if(depG12 && depG21) {
             newState.reorder = 2;
             newState.hashString = newState.toString();
-            if(!states.containsKey(newState)) {
-                states.put(newState, new Candidate(1, candidates.lifetime));
-            }
-            Candidate cands = states.get(newState);
-            for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
-                if(!cands.e2Sets.containsKey(e1)) {
-                    cands.e2Sets.put(e1, new HashSet<>());
+
+            HashSet<Triplet<Integer, Integer, Boolean>> newCands = new HashSet<>(candidates.e2Sets.keySet());
+            if(addToStates(states, newState, newCands)) {
+                if(!states.containsKey(newState)) {
+                    states.put(newState, new Candidate(1, candidates.lifetime));
                 }
+                Candidate cands = states.get(newState);
+                for(Triplet<Integer, Integer, Boolean> e1: newCands) {
+                    if(!cands.e2Sets.containsKey(e1)) {
+                        cands.e2Sets.put(e1, new HashSet<>());
+                    }
+                }
+                cands.size = 1;
+                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             }
-            cands.size = 1;
-            cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
         }
     }
 
@@ -510,13 +596,23 @@ public class GrainRaceState extends State {
         for(NondetState state: nondetStates.keySet()) {
             Candidate candidates = nondetStates.get(state); 
             if(state.reorder == 0 && !state.aftSet.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()){
+                int sizeBefore = racyEvents.size();
                 for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
                     racyEvents.addAll(candidates.e2Sets.get(e1));
                 }
+                int sizeAfter = racyEvents.size();
+                if(sizeAfter > sizeBefore) {
+                    System.out.println(racyEvents);
+                }
             } 
             if(state.reorder == 1 && !state.aftSet.isDependentWith(state.currentGrain) && !state.firstGrain.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()) {
+                int sizeBefore = racyEvents.size();
                 for(Triplet<Integer, Integer, Boolean> e1: candidates.e2Sets.keySet()) {
                     racyEvents.addAll(candidates.e2Sets.get(e1));
+                }
+                int sizeAfter = racyEvents.size();
+                if(sizeAfter > sizeBefore) {
+                    System.out.println(racyEvents);
                 }
             }
         }
@@ -560,15 +656,15 @@ class NondetState {
         hashString = this.toString();
     }
 
-    // public boolean subsume(NondetState other) {
-    //     return this.aftSetNoE1.subsume(other.aftSetNoE1) && this.currentGrain.subsume(other.currentGrain) && this.aftSet.subsume(other.aftSet);
-    // }
+    public boolean subsume(NondetState other) {
+        return this.firstGrain.subsume(other.firstGrain) && this.currentGrain.subsume(other.currentGrain) && this.aftSet.subsume(other.aftSet) && this.firstFrontier.subsume(other.firstFrontier) && this.currentFrontier.subsume(other.currentFrontier) && this.reorder == other.reorder;
+    }
 
     public void currentFrontierInclude(GrainRaceEvent e) {
-        currentFrontier.includedThreads.set(e.getThread().getId());
-        if(e.getType().isExtremeType()) {
-            currentFrontier.includedThreads.set(e.getTarget().getId());
-        }
+        // currentFrontier.includedThreads.set(e.getThread().getId());
+        // if(e.getType().isExtremeType()) {
+        //     currentFrontier.includedThreads.set(e.getTarget().getId());
+        // }
         if(e.getType().isWrite()) {
             currentFrontier.missedLastWtVars.clear(e.getVariable().getId());
             firstFrontier.missedLastWtVars.clear(e.getVariable().getId());
@@ -588,6 +684,7 @@ class NondetState {
             firstFrontier.missedLastWtVars.clear(e.getVariable().getId());
         }
         if(e.getType().isAcquire()) {
+            firstFrontier.includedLocks.set(e.getLock().getId());
             firstFrontier.missedLastLocks.clear(e.getLock().getId());
         }
     }
