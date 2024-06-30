@@ -1,15 +1,11 @@
-package engine.racedetectionengine.grainRaceMinLocalSHBV1;
+package engine.racedetectionengine.grainRaceMinLocalSHBV3;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.Comparator;
-import java.util.HashSet;
-
 import engine.grain.varAnnotation.VarAnnotationEngine;
 import engine.racedetectionengine.RaceDetectionEngine;
 import parse.ParserType;
-import util.Pair;
 
 public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRaceEvent>{
     public GrainRaceEngine(ParserType pType, String trace_folder, boolean singleThread, boolean boundedSize, int size, boolean window, int win) {
@@ -60,14 +56,8 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
     @Override
     protected void postAnalysis() {
         state.finalCheck();
-        System.out.println(state.racyEvents.stream().sorted(new E2Comparator()).toList());
+        System.out.println(state.racyEvents.stream().sorted().toList());
+        System.out.println(state.racyLocs.stream().sorted().toList());
         System.out.println("Number of racy events: " + state.racyEvents.size());
-        state.printTimingProfile();
-    }
-}
-
-class E2Comparator implements Comparator<Pair<Long, Integer>> {
-    public int compare(Pair<Long, Integer> s1, Pair<Long, Integer> s2) {
-        return s1.first.compareTo(s2.first);
     }
 }

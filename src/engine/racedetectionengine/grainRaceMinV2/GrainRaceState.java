@@ -1,12 +1,10 @@
 package engine.racedetectionengine.grainRaceMinV2;
 
-import java.security.cert.TrustAnchor;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.TreeMap;
 
 import engine.racedetectionengine.State;
 import engine.racedetectionengine.grain.Grain;
@@ -14,7 +12,6 @@ import engine.racedetectionengine.grain.GrainFrontier;
 import event.Thread;
 import event.Variable;
 import util.Pair;
-import util.Triplet;
 
 public class GrainRaceState extends State {
     
@@ -133,7 +130,7 @@ public class GrainRaceState extends State {
         //     }
         // }
         
-        return findRace;
+        return false;
     }
 
     private boolean addToStates(HashMap<String, Pair<NondetState, HashMap<String, HashSet<Pair<Long, Integer>>>>> states, NondetState newState, Set<String> cands) {

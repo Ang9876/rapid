@@ -214,6 +214,7 @@ public abstract class RaceDetectionEngine<St extends State, RDE extends RaceDete
 			// 		"Number of 'racy' lines found = " + this.locIdsOfRacyEvents.size());
 			if(!racyEvents.isEmpty())
 				System.out.println(racyEvents.stream().sorted().toList());
+				System.out.println(this.locIdsOfRacyEvents);
 		}
 	}
 
