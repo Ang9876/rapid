@@ -30,6 +30,8 @@ public class GetOptions {
 		options.addOption("st", "singleThreaded", false, "use singleThreaded grain optimization");
 		options.addOption("bs", "boundedSize", true, "bound the size of each chosen grain");
 		options.addOption("win", "window", true, "window size in dynamic analysis");
+		options.addOption("stt", "start", true, "start position");
+		options.addOption("len", "length", true, "processed length");
 	}
 
 	public CmdOptions parse() {
@@ -88,6 +90,14 @@ public class GetOptions {
 
 			if (cmd.hasOption("win")) {
 				cmdOpt.window = Integer.parseInt(cmd.getOptionValue("win"));
+			}
+
+			if (cmd.hasOption("start")) {
+				cmdOpt.start = Long.parseLong(cmd.getOptionValue("start"));
+			}
+
+			if (cmd.hasOption("length")) {
+				cmdOpt.length = Long.parseLong(cmd.getOptionValue("length"));
 			}
 
 		} catch (ParseException e) {

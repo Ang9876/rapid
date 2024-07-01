@@ -1,0 +1,241 @@
+Buildfile: /Users/askarzhendongang/Code/rapid/build.xml
+
+clean:
+   [delete] Deleting directory /Users/askarzhendongang/Code/rapid/bin
+
+build-subprojects:
+
+init:
+    [mkdir] Created dir: /Users/askarzhendongang/Code/rapid/bin
+
+build-project:
+     [echo] rapid: /Users/askarzhendongang/Code/rapid/build.xml
+    [javac] Compiling 254 source files to /Users/askarzhendongang/Code/rapid/bin
+    [javac] warning: [options] bootstrap class path is not set in conjunction with -source 8
+    [javac]   not setting the bootstrap class path may lead to class files that cannot run on JDK 8
+    [javac]     --release 8 is recommended instead of -source 8 -target 1.8 because it sets the bootstrap class path automatically
+    [javac] warning: [options] source value 8 is obsolete and will be removed in a future release
+    [javac] warning: [options] target value 8 is obsolete and will be removed in a future release
+    [javac] warning: [options] To suppress warnings about obsolete options, use -Xlint:-options.
+    [javac] Note: Some input files use unchecked or unsafe operations.
+    [javac] Note: Recompile with -Xlint:unchecked for details.
+    [javac] 4 warnings
+
+build:
+
+build-subprojects:
+
+init:
+
+build-project:
+     [echo] rapid: /Users/askarzhendongang/Code/rapid/build.xml
+
+build:
+
+grainrace:
+     [java] Mode of incomplete optimization: SingleThread, Bounded Grain Size = 10, 
+     [java] T21 0
+     [java] T22 1
+     [java] V2d541d29.201 0
+     [java] L2a2d541d29 0
+     [java] Num of Threads: 2
+     [java] Num of Vars: 1
+     [java] Num of Locks: 1
+     [java] 1
+     [java] T21|w(V2d541d29.201)|365
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{}{}0-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{0}{}{}}{}{0={0}{0}{}{}}{}false-1-1false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{}{}0-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{0}{}{}}{}{0={0}{0}{}{}}{}false00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{}{}0-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLtrue00true-1-1false
+     [java] []
+     [java] 3
+     [java] 2
+     [java] T21|acq(L2a2d541d29)|367
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{0}{}0-1falsefalse{}{}{}{}{}{}true{0}{}{}{0}{}{}{}{}NULLtrue00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{}{}{0}{}-10falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{}{}{0}}{}{}{0={0}{}{}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{0}{}0-1falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{0}{}{0}}{}{0={0}{0}{}{}}{0={0}{0}{}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{}{}{0}{}-10falsetrue{}{}{}{}{}{}true{}{}{}{}{0}{}{}{0}NULLtrue00true-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{}{}{0}{}-10falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{0}{}0-1falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{0}{}{0}}{}{0={0}{0}{}{}}{0={0}{0}{}{0}}false00true-1-1false
+     [java] []
+     [java] 6
+     [java] 3
+     [java] T21|r(V2d541d29.201)|368
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{0}{}0-1falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{0}{}0-1falsefalse{}{}{}{}{}{}true{0}{}{0}{0}{}{}{}{}NULLtrue00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{0}{}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{0}{}0-1falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{0}{0}{0}}{0={0={0}{0}{0}{0}}}{0={0}{0}{}{}}{0={0}{0}{}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{0}{}{}{}-1-1falsetrue{0}{}{}{}{}{0}true{}{}{}{}{0}{}{0}{}NULLtrue00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{0}{}0-1falsefalse{}{}{}{}{}{}true{0}{0}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{}{0}{}0-1falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{0}{0}{0}}{0={0={0}{0}{0}{0}}}{0={0}{0}{}{}}{0={0}{0}{}{0}}false00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{}{}{}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{}{}{}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{}{0}{}}{0={0={0}{}{0}{}}}{}{}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{0}{}{}{}-1-1falsetrue{0}{}{}{}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{}{}{}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{}{0}{}}{0={0={0}{}{0}{}}}{}{}false00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{}{0}{0}}{0={0={0}{}{0}{0}}}{}{0={0}{}{}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{}{}{}{}{0}{}{0}{0}NULLtrue00true-1-1false
+     [java] []
+     [java] 15
+     [java] 4
+     [java] T21|rel(L2a2d541d29)|369
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{0}{}{}0-1falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{0}{0}{0}}{0={0={0}{0}{0}{0}}}{0={0}{0}{}{}}{0={0}{0}{0}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{}{}{}{0}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{}{}{0}}{}{}{0={0}{}{}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{}{}{}{}{0}{}{0}{0}NULLtrue00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{0}{}{}{0}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{}{}{}{0}-1-1falsetrue{0}{}{}{0}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {0}{}{}{0}{}{}false{0}{}{}{}{}{}{0}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{}{}{}{0}-1-1falsetrue{0}{}{}{0}{}{0}true{}{}{}{}{0}{}{}{0}NULLtrue00true-1-1false
+     [java] []
+     [java] {0}{}{}{0}{}{}false{0}{}{}{}{}{}{0}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{0}{}{}{0}NULLtrue00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{0}{}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{0}{}{}0-1falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{0}{0}{0}}{0={0={0}{0}{0}{0}}}{0={0}{0}{}{}}{0={0}{0}{0}{0}}false00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{0}{}{}0-1falsefalse{}{}{}{}{}{}true{0}{0}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{0}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{0={0}{}{0}{0}}{0={0={0}{}{0}{0}}}{}{0={0}{}{0}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{0}{}{}0-1falsefalse{}{}{}{}{}{}true{0}{}{0}{0}{}{}{}{}NULLtrue00true-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{0}{}{0}{}{0}{}{}0-1falsefalse{}{}{}{}{}{}true{0}{}{}{0}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] 15
+     [java] 5
+     [java] T22|acq(L2a2d541d29)|367
+     [java] {}{}{}{}{}{}true{1}{}{}{}{}{0}{}-10falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{1={1}{}{}{0}}{}{}{0={1}{}{}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{}{}{0}{}-10falsetrue{0}{}{}{0}{}{0}true{}{}{}{}{}{}{}{}NULLtrue00true-1-1false
+     [java] []
+     [java] {0}{}{}{0}{}{}false{1}{}{}{}{}{0}{}-10falsetrue{0}{}{}{}{}{0}true{}{}{}{}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{}{}{0}{}-10falsetrue{0}{}{}{0}{0}{}true{}{}{}{}{}{}{}{}NULLtrue00true-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{}{}{0}{}-10falsetrue{}{}{}{}{}{}true{0}{}{}{0}{1}{}{}{0}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{}{}{0}{}-10falsetrue{}{}{}{}{}{}true{0}{}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{}{}false{1}{}{}{}{}{0}{}-10falsetrue{0}{}{}{}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{}{}{0}{}-10falsetrue{0}{}{}{0}{0}{}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{}{}{0}{}-10falsetrue{0}{}{}{0}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] 9
+     [java] 6
+     [java] T22|r(V2d541d29.201)|368
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{}{}{}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLtrue10false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{1}{}{}{0}{}{}{}{}NULLfalse10false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{}{0}{}-10falsetrue{0}{}{}{0}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00true10false
+     [java] [6]
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{}{0}{}-10falsetrue{0}{}{}{0}{0}{}true{}{}{}{}{}{}{}{}NULLfalse00true10false
+     [java] [6]
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLtrue10false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{0}{}{}{}-1-1falsetrue{1}{}{}{}{}{0}true{0}{}{}{0}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{0}{}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{}{}{}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{1={1}{}{0}{}}{1={0={1}{}{0}{}}}{}{}false10false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{}{}{}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{1={1}{}{0}{}}{1={0={1}{}{0}{}}}{}{}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{0}{}{}{}-1-1falsetrue{1}{}{}{}{}{0}true{0}{}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{}{0}{}-10falsetrue{0}{}{}{0}{}{0}true{}{}{}{}{1}{}{0}{}NULLtrue00true-1-1false
+     [java] [6]
+     [java] {0}{}{}{0}{}{}false{1}{}{}{0}{}{0}{}-10falsetrue{0}{}{}{}{}{0}true{}{}{}{}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{}{0}{}-10falsetrue{0}{}{}{0}{0}{}true{}{}{}{}{1}{}{0}{}NULLtrue00true-1-1false
+     [java] [6]
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{1={1}{}{0}{0}}{1={0={1}{}{0}{0}}}{}{0={1}{}{}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{}{0}{}-10falsetrue{0}{}{}{0}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{}{0}{}-10falsetrue{0}{}{}{0}{0}{}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {0}{}{}{0}{}{}false{1}{}{}{0}{}{0}{}-10falsetrue{0}{}{}{}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{0}{}{0}{}-10falsefalse{}{}{}{}{}{}true{0}{}{}{0}{1}{}{0}{0}NULLtrue00false-1-1false
+     [java] []
+     [java] 18
+     [java] 7
+     [java] T22|rel(L2a2d541d29)|369
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{0}{}{}-1-1truetrue{0}{}{}{0}{0}{}true{}{}{}{}{1}{}{0}{0}NULLtrue00true-1-1false
+     [java] [6]
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{0}{}{}-1-1truetrue{0}{}{}{0}{}{0}true{}{}{}{}{1}{}{0}{0}NULLtrue00true-1-1false
+     [java] [6]
+     [java] {0}{}{}{0}{}{}false{1}{}{}{0}{0}{}{}-1-1truetrue{0}{}{}{}{}{0}true{}{}{}{}{}{}{}{}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{0}{}{}-1-1truetrue{0}{}{}{0}{}{0}true{}{}{}{}{1}{}{}{0}NULLfalse00true10false
+     [java] [6]
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{0}{}{}-1-1truetrue{0}{}{}{0}{0}{}true{}{}{}{}{1}{}{}{0}NULLfalse00true10false
+     [java] [6]
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{}{}{}{0}-1-1falsetrue{1}{}{}{0}{}{0}true{0}{}{}{0}{1}{}{}{0}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{0}{}{}-1-1truetrue{0}{}{}{0}{0}{}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {0}{}{0}{}{}{}false{1}{}{}{0}{0}{}{}-1-1truetrue{0}{}{}{0}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00true-1-1false
+     [java] []
+     [java] {0}{}{}{0}{}{}false{1}{}{}{0}{0}{}{}-1-1truetrue{0}{}{}{}{}{0}true{}{}{}{}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{1}{}{}{0}{}{}{}{}NULLfalse10false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{1={1}{}{0}{0}}{1={0={1}{}{0}{0}}}{}{0={1}{}{0}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{1}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{1}{}{}{0}{}{}{}{}NULLtrue10false-1-1false
+     [java] []
+     [java] {1}{}{}{0}{}{}false{1}{}{}{}{}{}{0}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{1}{}{}{0}NULLtrue10false-1-1false
+     [java] []
+     [java] {}{}{}{}{}{}true{1}{}{}{}{}{}{0}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}{1={1}{}{}{0}}{}{}{0={1}{}{}{0}}false-1-1false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{0}{}{}{0}{1}{}{0}{0}NULLtrue00false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{}{}{}{0}-1-1falsetrue{1}{}{}{0}{}{0}true{0}{}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] {1}{}{}{0}{}{}false{1}{}{}{}{}{}{0}-1-1falsetrue{}{}{}{}{}{}true{}{}{}{}{}{}{}{}NULLfalse10false-1-1false
+     [java] []
+     [java] {0}{}{}{0}{0}{}false{1}{}{}{0}{0}{}{}-1-1truefalse{}{}{}{}{}{}true{0}{}{}{0}{}{}{}{}NULLfalse00false-1-1false
+     [java] []
+     [java] 18
+     [java] Time for analysis = 23 milliseconds
+     [java] New Race: 6
+     [java] New Race Loc: 368
+     [java] [6]
+     [java] [368]
+     [java] 1
+
+BUILD SUCCESSFUL
+Total time: 2 seconds

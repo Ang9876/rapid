@@ -59,6 +59,13 @@ public class MazFrontier {
         }
     }
 
+    public void union(MazFrontier other) {
+        threads.or(other.threads);
+        rdVars.or(other.rdVars);
+        wtVars.or(other.wtVars);
+        locks.or(other.locks);
+    }
+
     private boolean subsume(BitSet b1, BitSet b2) {
         BitSet b1Clone = (BitSet)b1.clone();
         b1Clone.andNot(b2);
@@ -74,5 +81,14 @@ public class MazFrontier {
         sb.append(wtVars);
         sb.append(rdVars);
         sb.append(locks);
+    }
+
+    public String toString(){
+        StringBuffer sb = new StringBuffer();
+        sb.append(threads);
+        sb.append(wtVars);
+        sb.append(rdVars);
+        sb.append(locks);
+        return sb.toString();
     }
 }

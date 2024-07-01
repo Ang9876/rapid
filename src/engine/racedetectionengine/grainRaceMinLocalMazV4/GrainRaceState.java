@@ -1,4 +1,4 @@
-package engine.racedetectionengine.grainRaceMinLocalMazV2;
+package engine.racedetectionengine.grainRaceMinLocalMazV4;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,6 +8,7 @@ import engine.racedetectionengine.State;
 import engine.racedetectionengine.grain.Grain;
 import engine.racedetectionengine.grain.GrainFrontier;
 import engine.racedetectionengine.grain.MazFrontier;
+import event.Lock;
 import event.Thread;
 import event.Variable;
 import util.Pair;
@@ -70,7 +71,22 @@ public class GrainRaceState extends State {
                     continue;
                 }
 
-                if(!state.aftSet.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()){
+                if(state.inorder && !state.aftSet.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()){
+                    for(Long e2: candidates.e2Sets) {
+                        if(!racyEvents.contains(e2)) {
+                            racyEvents.add(e2);
+                            System.out.println("New Race: " + e2);
+                        }
+                    }
+                    for(Integer e2: candidates.e2LocSets) {
+                        if(!racyLocs.contains(e2)) {
+                            racyLocs.add(e2);
+                            System.out.println("New Race Loc: " + e2);
+                        }
+                    }
+                    findRace = true;
+                }
+                if(!state.inorder && !state.aftSet.isDependentWith(state.currentGrain) && !state.firstGrain.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()) {
                     for(Long e2: candidates.e2Sets) {
                         if(!racyEvents.contains(e2)) {
                             racyEvents.add(e2);
@@ -91,12 +107,6 @@ public class GrainRaceState extends State {
                     boolean definiteEdge = state.currentGrain.isDefDependentWith(e) || state.aftSet.isDefDependentWith(e);
                     boolean edgeContraction = state.aftSet.isDependentWith(state.currentGrain) && definiteEdge;
                     // boolean edgeContraction = false;
-                    if(e.eventCount == 57) {
-                        System.out.println("In Old " + state);
-                        System.out.println(minimal);
-                        System.out.println(singleOrComplete);
-                        System.out.println(edgeContraction);
-                    } 
                     if(minimal || (singleOrComplete && !edgeContraction)) {
                         cutCurrentGrain(state, e, newStates, candidates, isCandidate);
                     }
@@ -127,6 +137,55 @@ public class GrainRaceState extends State {
         if(e.getType().isAcquire()) {
             newState.currentGrain.firstLock = e.getLock().getId();
         }
+    
+        if(e.getType().isAccessType()) {
+            NondetState newState2 = new NondetState(newState, true, false);
+            newState2.e1Thread = e.getThread().getId();
+            newState2.e1Var = e.getVariable().getId();
+            newState2.e1Write = e.getType().isWrite();
+            newState2.inorder = true;
+            newState2.backier = null;
+            newState2.hashString = newState2.toString();
+            String sig1 = newState2.getSignature();
+            boolean fresh = false;
+            if(!newStates.containsKey(sig1)) {
+                fresh = true;
+                newStates.put(sig1, new HashMap<>());
+            }
+            HashMap<String, Pair<NondetState, Candidate>>nondet = newStates.get(sig1); 
+            if(fresh || addToStates(nondet, newState2)) {
+                if(!nondet.containsKey(newState2.hashString)) {
+                    nondet.put(newState2.hashString, new Pair<>(newState2, new Candidate(1, 1)));
+                }
+                Candidate cands = nondet.get(newState2.hashString).second;
+                cands.size = 1;
+                cands.lifetime = 1;
+            }
+
+            NondetState newState3 = new NondetState(newState, true, false);
+            newState3.e1Thread = e.getThread().getId();
+            newState3.e1Var = e.getVariable().getId();
+            newState3.e1Write = e.getType().isWrite();
+            newState3.inorder = false;
+            newState3.hashString = newState3.toString();
+            // System.out.println("AddCon " + newState2);
+            sig1 = newState3.getSignature();
+            fresh = false;
+            if(!newStates.containsKey(sig1)) {
+                fresh = true;
+                newStates.put(sig1, new HashMap<>());
+            } 
+            nondet = newStates.get(sig1); 
+            if(fresh || addToStates(nondet, newState3)) {
+                if(!nondet.containsKey(newState3.hashString)) {
+                    nondet.put(newState3.hashString, new Pair<>(newState3, new Candidate(1, 1)));
+                }
+                Candidate cands = nondet.get(newState3.hashString).second;
+                cands.size = 1;
+                cands.lifetime = 1;
+            }
+        }
+        newState.backier.update(e);
         newState.hashString = newState.toString();
         String sig = newState.getSignature();
         boolean fresh = false;
@@ -144,39 +203,18 @@ public class GrainRaceState extends State {
             cands.lifetime = 1; 
         }
         
-        if(e.getType().isAccessType()) {
-            NondetState newState2 = new NondetState(newState, true, false);
-            newState2.e1Thread = e.getThread().getId();
-            newState2.e1Var = e.getVariable().getId();
-            newState2.e1Write = e.getType().isWrite();
-            newState2.hashString = newState2.toString();
-            String sig1 = newState2.getSignature();
-            fresh = false;
-            if(!newStates.containsKey(sig1)) {
-                fresh = true;
-                newStates.put(sig1, new HashMap<>());
-            }
-            nondet = newStates.get(sig1); 
-            if(fresh || addToStates(nondet, newState2)) {
-                if(!nondet.containsKey(newState2.hashString)) {
-                    nondet.put(newState2.hashString, new Pair<>(newState2, new Candidate(1, 1)));
-                }
-                Candidate cands = nondet.get(newState2.hashString).second;
-                cands.size = 1;
-                cands.lifetime = 1;
-            }
-        }
-
         nondetStates = newStates;
-        System.out.println(e.eventCount);
-        if(e.eventCount >= 1) {
-            System.out.println(e.toStandardFormat());
-            for(String sig1: nondetStates.keySet()) {
-                for(String state: nondetStates.get(sig1).keySet()) {
-                    System.out.println(state);
-                }
-            }
-        }
+        
+        // System.out.println(e.eventCount);
+        // if(e.eventCount >= 1) {
+        //     System.out.println(e.toStandardFormat());
+        //     for(String sig1: nondetStates.keySet()) {
+        //         for(String stateSig: nondetStates.get(sig1).keySet()) {
+        //             System.out.println(nondetStates.get(sig1).get(stateSig).first);
+        //             System.out.println(nondetStates.get(sig1).get(stateSig).second);
+        //         }
+        //     }
+        // }
         return findRace;
     }
 
@@ -241,7 +279,7 @@ public class GrainRaceState extends State {
         
 
         // FirstGrain
-        if(isFirstGrain && state.e1Thread != -1) {
+        if(isFirstGrain && state.e1Thread != -1 && state.inorder) {
             if(newState.firstFrontier.isDependentWith(e) || newState.isDependentWithE1(e)) {
                 newState.firstFrontier.update(e);
             }
@@ -251,14 +289,105 @@ public class GrainRaceState extends State {
             if(isCandidate && !newState.firstFrontier.isDependentWith(e) && !newState.currentFrontier.isDependentWith(e)) {
                 addToCand = true;
             }
-            if((newState.firstFrontier.isDependentWith(e) || newState.currentFrontier.isDependentWith(e)) || newState.isDependentWithE1(e)) {
-                newState.currentFrontier.update(e);
+            if(newState.inorder) {
+                if((newState.firstFrontier.isDependentWith(e) || newState.currentFrontier.isDependentWith(e)) || newState.isDependentWithE1(e)) {
+                    newState.currentFrontier.update(e);
+                }
+            }
+            else if(newState.e2Thread == -1 && addToCand) {
+                NondetState newState2 = new NondetState(newState, true, false);
+                newState2.e2Thread = e.getThread().getId();
+                newState2.e2Var = e.getVariable().getId();
+                newState2.e2Write = e.getType().isWrite();
+                newState2.currentGrain.updateGrain(e, lastReads, e.eventCount);
+                newState2.hashString = newState2.toString();
+                String sig1 = newState2.getSignature();
+                boolean fresh = false;
+                if(!states.containsKey(sig1)) {
+                    fresh = true;
+                    states.put(sig1, new HashMap<>());
+                } 
+                HashMap<String, Pair<NondetState, Candidate>> nondet = states.get(sig1); 
+                if(fresh || addToStates(nondet, newState2)) {
+                    if(!nondet.containsKey(newState2.hashString)) {
+                        nondet.put(newState2.hashString, new Pair<>(newState2, new Candidate(candidates.size + 1, candidates.lifetime + 1)));
+                    }
+                    Candidate cands = nondet.get(newState2.hashString).second;
+                    cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                    cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
+                    cands.e2Sets.add(e.eventCount);
+                    cands.e2LocSets.add(e.getLocId());
+                }
+            }
+            else if(newState.e2Thread != -1) {
+                if(newState.isDependentWithE2(e) || newState.currentFrontier.isDependentWith(e)) {
+                    if(newState.firstFrontier.isDependentWith(e) || newState.isDependentWithE1(e)) {
+                        return;
+                    }
+                    newState.currentFrontier.update(e);
+                }
             }
         }
         newState.currentGrain.updateGrain(e, lastReads, e.eventCount);
 
         // System.out.println("AddCon " + newState);
         // System.out.println(states);
+        
+
+        if(state.e1Thread == -1 && e.getType().isAccessType()) {
+            NondetState newState2 = new NondetState(newState, true, false);
+            newState2.e1Thread = e.getThread().getId();
+            newState2.e1Var = e.getVariable().getId();
+            newState2.e1Write = e.getType().isWrite();
+            newState2.inorder = true;
+            newState2.backier = null;
+            newState2.hashString = newState2.toString();
+            // System.out.println("AddCon " + newState2);
+            String sig1 = newState2.getSignature();
+            boolean fresh = false;
+            if(!states.containsKey(sig1)) {
+                fresh = true;
+                states.put(sig1, new HashMap<>());
+            } 
+            HashMap<String, Pair<NondetState, Candidate>> nondet = states.get(sig1); 
+            if(fresh || addToStates(nondet, newState2)) {
+                if(!nondet.containsKey(newState2.hashString)) {
+                    nondet.put(newState2.hashString, new Pair<>(newState2, new Candidate(candidates.size + 1, candidates.lifetime + 1)));
+                }
+                Candidate cands = nondet.get(newState2.hashString).second;
+                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
+            }
+
+            NondetState newState3 = new NondetState(newState, true, false);
+            newState3.e1Thread = e.getThread().getId();
+            newState3.e1Var = e.getVariable().getId();
+            newState3.e1Write = e.getType().isWrite();
+            newState3.inorder = false;
+            newState3.firstFrontier = newState3.backier.getSummary(e);
+            newState3.backier = null;
+            newState3.hashString = newState3.toString();
+            // System.out.println("AddCon " + newState2);
+            sig1 = newState3.getSignature();
+            fresh = false;
+            if(!states.containsKey(sig1)) {
+                fresh = true;
+                states.put(sig1, new HashMap<>());
+            } 
+            nondet = states.get(sig1); 
+            if(fresh || addToStates(nondet, newState3)) {
+                if(!nondet.containsKey(newState3.hashString)) {
+                    nondet.put(newState3.hashString, new Pair<>(newState3, new Candidate(candidates.size + 1, candidates.lifetime + 1)));
+                }
+                Candidate cands = nondet.get(newState3.hashString).second;
+                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
+            }
+        }
+
+        if(state.e1Thread == -1) {
+            state.backier.update(e);
+        }
         newState.hashString = newState.toString();
         String sig = newState.getSignature();
         boolean fresh = false;
@@ -277,36 +406,11 @@ public class GrainRaceState extends State {
             cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             cands.e2Sets.addAll(candidates.e2Sets);
             cands.e2LocSets.addAll(candidates.e2LocSets);
-            if(addToCand) {
+            if(addToCand && newState.inorder) {
                 cands.e2Sets.add(e.eventCount);
                 cands.e2LocSets.add(e.getLocId());
             }
         }
-
-        if(state.e1Thread == -1 && e.getType().isAccessType()) {
-            NondetState newState2 = new NondetState(newState, true, false);
-            newState2.e1Thread = e.getThread().getId();
-            newState2.e1Var = e.getVariable().getId();
-            newState2.e1Write = e.getType().isWrite();
-            newState2.hashString = newState2.toString();
-            // System.out.println("AddCon " + newState2);
-            String sig1 = newState2.getSignature();
-            fresh = false;
-            if(!states.containsKey(sig1)) {
-                fresh = true;
-                states.put(sig1, new HashMap<>());
-            } 
-            nondet = states.get(sig1); 
-            if(fresh || addToStates(nondet, newState2)) {
-                if(!nondet.containsKey(newState2.hashString)) {
-                    nondet.put(newState2.hashString, new Pair<>(newState2, new Candidate(candidates.size + 1, candidates.lifetime + 1)));
-                }
-                Candidate cands = nondet.get(newState2.hashString).second;
-                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
-                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
-            }
-        }
-        // System.out.println(states);
     }
 
     private void cutCurrentGrain(NondetState state, GrainRaceEvent e, HashMap<String, HashMap<String, Pair<NondetState, Candidate>>> states, Candidate candidates, boolean isCandidate) {
@@ -334,26 +438,41 @@ public class GrainRaceState extends State {
         if(isCandidate && !state.firstFrontier.isDependentWith(e)){
             addToCand = true;
         }
-        if(newState.firstFrontier.isDependentWith(e) || newState.isDependentWithE1(e)) {
+        if(!newState.inorder && addToCand) {
+            NondetState newState2 = new NondetState(newState, true, false);
+            newState2.e2Thread = e.getThread().getId();
+            newState2.e2Var = e.getVariable().getId();
+            newState2.e2Write = e.getType().isWrite();
+            newState2.backier = null;
+            newState2.hashString = newState2.toString();
+            String sig1 = newState2.getSignature();
+            boolean fresh = false;
+            if(!states.containsKey(sig1)) {
+                fresh = true;
+                states.put(sig1, new HashMap<>());
+            } 
+            HashMap<String, Pair<NondetState, Candidate>> nondet = states.get(sig1); 
+            if(fresh || addToStates(nondet, newState2)) {
+                if(!nondet.containsKey(newState2.hashString)) {
+                    nondet.put(newState2.hashString, new Pair<>(newState2, new Candidate(candidates.size + 1, candidates.lifetime + 1)));
+                }
+                Candidate cands = nondet.get(newState2.hashString).second;
+                cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
+                cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
+                cands.e2Sets.add(e.eventCount);
+                cands.e2LocSets.add(e.getLocId());
+            }
+        }
+        if(newState.inorder && (newState.firstFrontier.isDependentWith(e) || newState.isDependentWithE1(e))) {
             newState.currentFrontier.update(e);
         }
-
-        newState.hashString = newState.toString();
+        newState.backier = null;
         newState.hashString = newState.toString();
         String sig = newState.getSignature();
         boolean fresh = false;
         if(!states.containsKey(sig)) {
             fresh = true;
             states.put(sig, new HashMap<>());
-        }
-        if(e.eventCount == 57) {
-            System.out.println("Old " + state);
-            System.out.println("Add " + newState);
-            for(String sig1: states.keySet()) {
-                for(String state1: states.get(sig1).keySet()) {
-                    System.out.println(state1);
-                }
-            }
         }
         HashMap<String, Pair<NondetState, Candidate>> nondet = states.get(sig); 
         if(fresh || addToStates(nondet, newState)) {
@@ -363,16 +482,9 @@ public class GrainRaceState extends State {
             Candidate cands = nondet.get(newState.hashString).second;
             cands.size = 1;
             cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
-            if(addToCand) {
+            if(newState.inorder && addToCand) {
                 cands.e2Sets.add(e.eventCount);
                 cands.e2LocSets.add(e.getLocId());
-            }
-        }
-        if(e.eventCount == 57) {
-            for(String sig1: states.keySet()) {
-                for(String state1: states.get(sig1).keySet()) {
-                    System.out.println(state1);
-                }
             }
         }
     }
@@ -392,7 +504,21 @@ public class GrainRaceState extends State {
                 Pair<NondetState, Candidate> pair = nondet.get(stateSig);
                 NondetState state = pair.first;
                 Candidate candidates = pair.second; 
-                if(!state.aftSet.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()) {
+                if(state.inorder && !state.aftSet.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()) {
+                    for(Long e2: candidates.e2Sets) {
+                        if(!racyEvents.contains(e2)) {
+                            racyEvents.add(e2);
+                            System.out.println("New Race: " + e2);
+                        }
+                    }
+                    for(Integer e2: candidates.e2LocSets) {
+                        if(!racyLocs.contains(e2)) {
+                            racyLocs.add(e2);
+                            System.out.println("New Race Loc: " + e2);
+                        }
+                    }
+                }
+                if(!state.inorder && !state.aftSet.isDependentWith(state.currentGrain) && !state.firstGrain.isDependentWith(state.currentGrain) && !candidates.e2Sets.isEmpty()) {
                     for(Long e2: candidates.e2Sets) {
                         if(!racyEvents.contains(e2)) {
                             racyEvents.add(e2);
@@ -419,6 +545,118 @@ public class GrainRaceState extends State {
     }
 }
 
+class MazBackier {
+    public HashMap<Integer, MazFrontier> threadBackier = new HashMap<>();
+    public HashMap<Integer, HashMap<Integer, MazFrontier>> readBackier = new HashMap<>();
+    public HashMap<Integer, MazFrontier> writeBackier = new HashMap<>();
+    public HashMap<Integer, MazFrontier> lockBackier = new HashMap<>();
+
+    public void updateExtreme(int thread, int target) {
+        if(threadBackier.containsKey(target)) {
+            threadBackier.get(thread).union(threadBackier.get(target));
+        }
+    }
+
+    public void updateRead(int thread, int var) {
+        MazFrontier frontier = threadBackier.get(thread);
+        frontier.rdVars.set(var);
+        if(writeBackier.containsKey(var)) {
+            frontier.union(writeBackier.get(var));
+        }
+        if(!readBackier.containsKey(thread)) {
+            readBackier.put(thread, new HashMap<>());
+        }
+        readBackier.get(thread).put(var, new MazFrontier(frontier));
+    }
+
+    public void updateWrite(int thread, int var) {
+        MazFrontier frontier = threadBackier.get(thread);
+        frontier.wtVars.set(var);
+        if(writeBackier.containsKey(var)) {
+            frontier.union(writeBackier.get(var));
+        }
+        for(int t: readBackier.keySet()) {
+            if(readBackier.get(t).containsKey(var)) {
+                frontier.union(readBackier.get(t).get(var));
+            }
+        }
+        writeBackier.put(var, new MazFrontier(frontier));
+    }
+
+    public void updateLock(int thread, int lock) {
+        MazFrontier frontier = threadBackier.get(thread);
+        frontier.locks.set(lock);
+        if(lockBackier.containsKey(lock)) {
+            frontier.union(lockBackier.get(lock));
+        }
+        lockBackier.put(lock, new MazFrontier(frontier));
+    }
+
+    public void update(GrainRaceEvent e) {
+        int thread = e.getThread().getId();
+        if(!threadBackier.containsKey(thread)) {
+            threadBackier.put(thread, new MazFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks));
+            threadBackier.get(thread).threads.set(thread);
+        }
+        if(e.getType().isExtremeType()) {
+            updateExtreme(e.getThread().getId(), e.getTarget().getId());
+        }
+        if(e.getType().isRead()) {
+            updateRead(e.getThread().getId(), e.getVariable().getId());
+        }
+        if(e.getType().isWrite()) {
+            updateWrite(e.getThread().getId(), e.getVariable().getId());
+        }
+        if(e.getType().isLockType()) {
+            updateLock(e.getThread().getId(), e.getLock().getId());
+        }
+    }
+
+    public MazFrontier getSummary(GrainRaceEvent e) {
+        int thread = e.getThread().getId();
+        int var = e.getVariable().getId();
+        MazFrontier frontier;
+        if(!threadBackier.containsKey(thread)) {
+            frontier = new MazFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
+        }
+        else {
+            frontier = new MazFrontier(threadBackier.get(thread));
+        }
+         
+        if(writeBackier.containsKey(var)) {
+            frontier.union(writeBackier.get(var));
+        }
+        if(e.getType().isWrite()) {
+            for(int t: readBackier.keySet()) {
+                if(readBackier.get(t).containsKey(var)) {
+                    frontier.union(readBackier.get(t).get(var));
+                }
+            }
+        }
+        return frontier;
+    }
+
+    public boolean subsume(MazBackier other) {
+        return threadBackier.equals(other.threadBackier) && readBackier.equals(other.readBackier) && writeBackier.equals(other.writeBackier) && lockBackier.equals(lockBackier);
+    }
+
+    public void toString(StringBuffer sb) {
+        sb.append(threadBackier);
+        sb.append(readBackier);
+        sb.append(writeBackier);
+        sb.append(lockBackier);
+    }
+
+    // public String toString() {
+    //     StringBuffer sb = new StringBuffer();
+    //     sb.append(threadBackier);
+    //     sb.append(readBackier);
+    //     sb.append(writeBackier);
+    //     sb.append(lockBackier);
+    //     return sb.toString();
+    // }
+}
+
 class NondetState {
     public GrainFrontier firstGrain; 
     public Grain currentGrain;
@@ -427,8 +665,13 @@ class NondetState {
     public int e1Thread;
     public int e1Var;
     public boolean e1Write;
+    public int e2Thread;
+    public int e2Var;
+    public boolean e2Write;
+    public boolean inorder;
     public MazFrontier firstFrontier;
     public MazFrontier currentFrontier;
+    public MazBackier backier;
     public String hashString;
 
     public NondetState() {
@@ -437,9 +680,14 @@ class NondetState {
         aftSet = new GrainFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
         e1Thread = -1;
         e1Var = -1;
+        e2Thread = -1;
+        e2Var = -1;
+        e2Write = false;
+        inorder = false;
         e1Write = false;
         firstFrontier = new MazFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
         currentFrontier = new MazFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
+        backier = new MazBackier();
         hashString = this.toString();
     }
 
@@ -450,8 +698,13 @@ class NondetState {
         e1Thread = state.e1Thread;
         e1Var = state.e1Var;
         e1Write = state.e1Write;
+        e2Thread = copy ? state.e2Thread : -1;
+        e2Var = copy ? state.e2Var : -1;
+        e2Write = copy ? state.e2Write : false;
+        inorder = state.inorder;
         firstFrontier = new MazFrontier(state.firstFrontier);
         currentFrontier = copy ? new MazFrontier(state.currentFrontier) : new MazFrontier(GrainRaceState.numOfThreads, GrainRaceState.numOfVars, GrainRaceState.numOfLocks);
+        backier = copy ? state.backier : null;
         hashString = this.toString();
     }
     
@@ -461,8 +714,14 @@ class NondetState {
                 (e.getType().isAccessType() && e.getVariable().getId() == e1Var && (e1Write || e.getType().isWrite()));
     }
 
+    public boolean isDependentWithE2(GrainRaceEvent e) {
+        return  e.getThread().getId() == e2Thread || 
+                (e.getType().isExtremeType() && e.getTarget().getId() == e2Thread) ||
+                (e.getType().isAccessType() && e.getVariable().getId() == e2Var && (e2Write || e.getType().isWrite()));
+    }
+
     public boolean subsume(NondetState other) {
-        return !this.firstGrain.isEmpty && this.e1Thread == other.e1Thread && this.e1Var == other.e1Var && (this.e1Write || !other.e1Write) && this.firstGrain.subsume(other.firstGrain) && this.currentGrain.subsume(other.currentGrain) && this.aftSet.subsume(other.aftSet) && this.firstFrontier.subsume(other.firstFrontier) && this.currentFrontier.subsume(other.currentFrontier);
+        return !this.firstGrain.isEmpty && this.e1Thread == other.e1Thread && this.e1Var == other.e1Var && this.inorder == other.inorder && (this.e1Write || !other.e1Write) && (this.e2Write || !other.e2Write) && this.firstGrain.subsume(other.firstGrain) && this.currentGrain.subsume(other.currentGrain) && this.aftSet.subsume(other.aftSet) && this.firstFrontier.subsume(other.firstFrontier) && this.currentFrontier.subsume(other.currentFrontier) && ((this.backier == null && other.backier == null) || (this.backier != null && other.backier != null && this.backier.subsume(other.backier)));
     }
 
     public String getSignature() {
@@ -476,6 +735,9 @@ class NondetState {
         sb.append(firstGrain.isEmpty);
         sb.append(e1Thread);
         sb.append(e1Var);
+        sb.append(e2Thread);
+        sb.append(e2Var);
+        sb.append(inorder);
         return sb.toString();
     }
 
@@ -486,9 +748,17 @@ class NondetState {
         aftSet.toString(sb);
         firstFrontier.toString(sb);
         currentFrontier.toString(sb);
+        if(backier != null) 
+            backier.toString(sb);
+        else
+            sb.append("NULL");
+        sb.append(inorder);
         sb.append(e1Thread);
         sb.append(e1Var);
         sb.append(e1Write);
+        sb.append(e2Thread);
+        sb.append(e2Var);
+        sb.append(e2Write);
         return sb.toString();
     }
 }
@@ -504,5 +774,9 @@ class Candidate {
         e2LocSets = new HashSet<>();
         this.size = size;
         this.lifetime = lifetime;
+    }
+
+    public String toString() {
+        return e2Sets.toString();
     }
 }

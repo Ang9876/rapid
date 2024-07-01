@@ -54,6 +54,7 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
     protected void postAnalysis() {
         state.finalCheck();
         System.out.println(state.racyEvents.stream().sorted().toList());
+        System.out.println(state.racyLocs.stream().sorted().toList()); 
         System.out.println(state.racyEvents.size());
     }
 }

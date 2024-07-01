@@ -14,6 +14,8 @@ public class CmdOptions {
 	public boolean singleThread;
 	public int boundedSize;
 	public int window;
+	public long start;
+	public long length;
 
 	public CmdOptions() {
 		this.parserType = ParserType.CSV;
@@ -26,6 +28,8 @@ public class CmdOptions {
 		singleThread = false;
 		boundedSize = -1;
 		window = -1;
+		start = -1;
+		length = -1;
 	}
 	
 	public String toString(){

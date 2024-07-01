@@ -162,15 +162,19 @@
         </java>
     </target>
     <target name="grainrace" depends="build">
-        <java classname="GrainRaceMinLocalMazV2" fork="true">
+        <java classname="GrainRaceMinLocalMazV4" fork="true">
             <arg value="-f" />
             <arg value="std" />
             <arg value="-p" />
             <!-- <arg value="benchmark/T2/series_filter_short.std" /> -->
-            <arg value="Benchmarks/STD-Format/mergesort.std" /> 
-            <!-- <arg value="-st" /> -->
-            <!-- <arg value="-bs" />
-            <arg value="1" /> -->
+            <arg value="Benchmarks/STD-Format/bufwriter.std" /> 
+            <arg value="-st" />
+            <arg value="-bs" />
+            <arg value="10" />
+            <arg value="-stt" />
+            <arg value="1" />
+            <arg value="-len" />
+            <arg value="2" />
             <classpath refid="rapid.classpath" />
         </java>
     </target>

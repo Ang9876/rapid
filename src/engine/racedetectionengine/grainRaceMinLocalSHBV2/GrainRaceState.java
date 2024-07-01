@@ -283,6 +283,7 @@ public class GrainRaceState extends State {
             cands.size = (cands.size < candidates.size + 1) ? cands.size : candidates.size + 1;
             cands.lifetime = (cands.lifetime < candidates.lifetime + 1) ? cands.lifetime : candidates.lifetime + 1;
             cands.e2Sets.addAll(candidates.e2Sets);
+            cands.e2LocSets.addAll(candidates.e2LocSets);
             if(addToCand) {
                 cands.e2Sets.add(e.eventCount);
                 cands.e2LocSets.add(e.getLocId());

@@ -1,4 +1,4 @@
-package engine.racedetectionengine.grainRaceMinLocalMazV3;
+package engine.racedetectionengine.grainRaceMinLocalMazV4;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -9,8 +9,14 @@ import engine.racedetectionengine.RaceDetectionEngine;
 import parse.ParserType;
 
 public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRaceEvent>{
-    public GrainRaceEngine(ParserType pType, String trace_folder, boolean singleThread, boolean boundedSize, int size, boolean window, int win) {
+
+    private long start;
+    private long length;
+
+    public GrainRaceEngine(ParserType pType, String trace_folder, boolean singleThread, boolean boundedSize, int size, boolean window, int win, long start, long length) {
         super(pType);
+        this.start = start;
+        this.length = length;
         initializeReader(trace_folder);
         VarAnnotationEngine varAnnotationEngine = new VarAnnotationEngine(pType, trace_folder, stdParser);
         varAnnotationEngine.analyzeTrace();
@@ -41,6 +47,29 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
     }
 
     @Override
+    public void analyzeTraceSTD(boolean multipleRace, int verbosity) {
+		while (stdParser.hasNext()) {
+			eventCount = eventCount + 1;
+			if(eventCount < start || eventCount > start + length) {
+                continue;
+            }
+			stdParser.getNextEvent(handlerEvent);
+			if (skipEvent(handlerEvent)) {
+				totalSkippedEvents = totalSkippedEvents + 1;
+			} else {
+				boolean raceDetected = analyzeEvent(handlerEvent, verbosity, eventCount);
+				if (raceDetected) {
+					raceCount++;
+					if (!multipleRace) {
+						break;
+					}
+				}
+				postHandleEvent(handlerEvent);
+			}
+		}
+	}
+
+    @Override
     protected boolean skipEvent(GrainRaceEvent handlerEvent) {
         return false;
     }
@@ -55,6 +84,6 @@ public class GrainRaceEngine extends RaceDetectionEngine<GrainRaceState, GrainRa
         state.finalCheck();
         System.out.println(state.racyEvents.stream().sorted().toList());
         System.out.println(state.racyLocs.stream().sorted().toList()); 
-        System.out.println(state.racyEvents.size());
+        System.out.println("Number of races = " + state.racyEvents.size());
     }
 }
